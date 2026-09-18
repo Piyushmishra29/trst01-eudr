@@ -175,3 +175,9 @@ docs/                    README media + make_media.py
 - Edges along roads are snapped to within about 1 m. Hand-traced edges along hedges and between fields are accurate to about 1–2 m. The whole photo can be off by a few metres, because it is aligned to satellite imagery.
 - Esri World Imagery is used for alignment, review and the satellite surround in the public 3D viewer. Check its licence before any client-facing redistribution.
 - `samples/TEST_*` files are synthetic, not real farms.
+
+### Site model for a real-estate pitch (branch `site-model`)
+
+Live: https://pi-vps-bombay-16gb.tail641fa8.ts.net/bagalur-estate/
+
+A clean three.js page in the style of an architect's site model, with no Cesium and no third-party map licence: the dehazed 48 MP photo on gentle relief, surroundings faded into a paper background, pale massing buildings with the real roofs, photo-coloured trees, soft shadows and contact shading. Thin white parcel boundaries, a parcel list and cards (acres, acres-guntas, sq ft, hectares, perimeter), distance and area measuring, double-click to fly in and circle a spot, and a "share view" link. Code: `test-data/bagalur/site/` (`build_site.py` makes `web/site.json` and the textures; `web/a` links to the shared viewer assets, deploy with `rsync -L`). Boundaries are indicative and heights are estimated; the page says so.

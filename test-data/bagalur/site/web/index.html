@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#ece9e3">
+<meta name="robots" content="noindex">
+<title>Bagalur Estate · Aerial Site Survey</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+  :root { --paper:#ece9e3; --ink:#1b1f1c; --mute:#6d746e; --line:rgba(27,31,28,.1); --glass:rgba(255,255,255,.78); --accent:#a8834a; --green:#1f4d3a; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; background:var(--paper); color:var(--ink); font:14px/1.45 "DM Sans",system-ui,sans-serif; overflow:hidden; overscroll-behavior:none; -webkit-font-smoothing:antialiased; }
+  body { height:100dvh; }
+  canvas { display:block; touch-action:none; user-select:none; -webkit-user-select:none; outline:none; }
+  .glass { background:var(--glass); -webkit-backdrop-filter:blur(14px) saturate(1.2); backdrop-filter:blur(14px) saturate(1.2); border:1px solid rgba(255,255,255,.7); box-shadow:0 1px 2px rgba(20,25,20,.06), 0 12px 40px rgba(20,25,20,.12); }
+  #brand { position:fixed; left:max(20px,env(safe-area-inset-left)); top:max(20px,env(safe-area-inset-top)); width:min(330px,calc(100vw - 40px)); border-radius:18px; padding:18px 20px 14px; }
+  .eyebrow { font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--accent); font-weight:600; }
+  h1 { font:400 30px/1.1 "DM Serif Display",Georgia,serif; margin:6px 0 4px; letter-spacing:-.01em; }
+  #brand .sub { color:var(--mute); font-size:13px; margin:0; }
+  #stats { display:grid; grid-template-columns:repeat(3,1fr); gap:0; margin:14px 0 4px; border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+  #stats div { padding:10px 0; } #stats div + div { padding-left:12px; border-left:1px solid var(--line); }
+  #stats b { display:block; font:400 21px/1.1 "DM Serif Display",Georgia,serif; } #stats span { font-size:11px; color:var(--mute); }
+  #plist-h { display:flex; justify-content:space-between; align-items:center; width:100%; background:none; border:0; padding:10px 0 4px; font:600 12px "DM Sans"; letter-spacing:.06em; text-transform:uppercase; color:var(--ink); cursor:pointer; }
+  #plist-h i { font-style:normal; color:var(--mute); transition:transform .2s; } #brand.open #plist-h i { transform:rotate(180deg); }
+  #plist { display:none; max-height:min(38vh,300px); overflow:auto; margin:2px -8px 0; padding:0 8px; } #brand.open #plist { display:block; }
+  #plist button { display:flex; justify-content:space-between; width:100%; background:none; border:0; border-top:1px solid var(--line); padding:8px 2px; font:inherit; color:var(--ink); cursor:pointer; text-align:left; }
+  #plist button:hover, #plist button.sel { color:var(--accent); } #plist button span:last-child { color:var(--mute); font-variant-numeric:tabular-nums; }
+  #bar { position:fixed; left:50%; transform:translateX(-50%); bottom:max(20px,env(safe-area-inset-bottom)); display:flex; gap:4px; padding:6px; border-radius:999px; max-width:calc(100vw - 24px); overflow-x:auto; scrollbar-width:none; }
+  #bar::-webkit-scrollbar { display:none; }
+  #bar button { border:0; background:none; font:500 13px "DM Sans"; color:var(--ink); padding:9px 14px; border-radius:999px; cursor:pointer; white-space:nowrap; transition:background .15s,color .15s; }
+  #bar button:hover { background:rgba(27,31,28,.07); } #bar button.on { background:var(--ink); color:#fff; }
+  #bar .sep { width:1px; background:var(--line); margin:6px 4px; flex:none; }
+  #card { position:fixed; right:max(20px,env(safe-area-inset-right)); top:max(20px,env(safe-area-inset-top)); width:min(290px,calc(100vw - 40px)); border-radius:18px; padding:18px 20px; display:none; }
+  #card h2 { font:400 24px/1.1 "DM Serif Display",Georgia,serif; margin:4px 0 12px; } #card .x { position:absolute; right:12px; top:10px; border:0; background:none; font-size:20px; color:var(--mute); cursor:pointer; padding:6px; }
+  #card dl { margin:0; display:grid; grid-template-columns:auto 1fr; gap:0; } #card dt, #card dd { padding:8px 0; border-top:1px solid var(--line); margin:0; } #card dt { color:var(--mute); padding-right:16px; } #card dd { text-align:right; font-variant-numeric:tabular-nums; font-weight:500; }
+  #card p { margin:12px 0 0; font-size:11.5px; color:var(--mute); }
+  #pop { position:fixed; left:50%; transform:translateX(-50%); bottom:calc(max(20px,env(safe-area-inset-bottom)) + 62px); border-radius:16px; padding:14px 16px; width:min(300px,calc(100vw - 40px)); display:none; }
+  #pop label { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:6px 0; font-size:13px; cursor:pointer; } #pop input[type=range] { width:150px; accent-color:var(--ink); } #pop input[type=checkbox] { width:16px; height:16px; accent-color:var(--ink); }
+  #labels { position:fixed; inset:0; pointer-events:none; overflow:hidden; }
+  .lab { position:absolute; left:0; top:0; transform:translate(-50%,-50%); white-space:nowrap; will-change:transform; transition:opacity .25s; }
+  .lab.p { font:600 11px "DM Sans"; letter-spacing:.04em; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,.65), 0 0 12px rgba(0,0,0,.35); text-align:center; }
+  .lab.p small { display:block; font-weight:400; font-size:10.5px; letter-spacing:0; opacity:.92; }
+  .lab.poi { font:italic 400 13px "DM Serif Display",Georgia,serif; color:#fff; text-shadow:0 1px 4px rgba(0,0,0,.7), 0 0 14px rgba(0,0,0,.4); }
+  .lab.poi::before { content:""; display:block; width:5px; height:5px; border-radius:50%; background:#fff; margin:0 auto 4px; box-shadow:0 0 0 3px rgba(255,255,255,.3); }
+  .lab.m { font:600 12px "DM Sans"; background:var(--ink); color:#fff; padding:4px 9px; border-radius:999px; box-shadow:0 4px 14px rgba(0,0,0,.25); }
+  #toast { position:fixed; left:50%; top:max(20px,env(safe-area-inset-top)); transform:translateX(-50%); padding:9px 16px; border-radius:999px; font-size:13px; opacity:0; transition:opacity .3s; pointer-events:none; }
+  #foot { position:fixed; left:max(20px,env(safe-area-inset-left)); bottom:max(14px,env(safe-area-inset-bottom)); font-size:10px; line-height:1.5; color:rgba(255,255,255,.8); text-shadow:0 1px 3px rgba(0,0,0,.6); pointer-events:none; max-width:min(300px,26vw); }
+  #load { position:fixed; inset:0; display:grid; place-items:center; background:var(--paper); z-index:10; transition:opacity .8s; } #load div { text-align:center; } #load h1 { font-size:34px; } #load p { color:var(--mute); margin:6px 0 0; letter-spacing:.12em; text-transform:uppercase; font-size:11px; }
+  @media (max-width:1100px) { #foot { display:none; } }
+  @media (max-width:720px) { #brand { padding:14px 16px 10px; } h1 { font-size:24px; } #stats b { font-size:18px; } #foot { display:none; } #card { top:auto; bottom:calc(max(20px,env(safe-area-inset-bottom)) + 62px); right:50%; transform:translateX(50%); } }
+</style>
+</head>
+<body>
+<div id="load"><div><div class="eyebrow">Aerial site survey</div><h1>Bagalur Estate</h1><p id="load-t">Preparing the site model</p></div></div>
+<div id="labels"></div>
+<div id="brand" class="glass">
+  <div class="eyebrow">Aerial site survey</div>
+  <h1>Bagalur Estate</h1>
+  <p class="sub">Bagalur, Karnataka · surveyed by drone at 6 cm detail</p>
+  <div id="stats"><div><b id="s-ac">–</b><span>acres mapped</span></div><div><b id="s-pc">–</b><span>parcels</span></div><div><b id="s-st">–</b><span>structures</span></div></div>
+  <button id="plist-h">Parcels <i>⌄</i></button>
+  <div id="plist"></div>
+</div>
+<div id="card" class="glass"><button class="x" aria-label="Close">×</button><div class="eyebrow">Parcel</div><h2 id="c-t"></h2><dl id="c-d"></dl><p>Boundary read from the aerial image along tracks, hedges and land use. Indicative until checked against the land records.</p></div>
+<div id="pop" class="glass">
+  <label>Parcel boundaries <input type="checkbox" data-l="parcels" checked></label>
+  <label>Labels <input type="checkbox" data-l="labels" checked></label>
+  <label>Trees <input type="checkbox" data-l="trees" checked></label>
+  <label>Structures <input type="checkbox" data-l="structures" checked></label>
+  <label>Sun <input id="sun" type="range" min="0" max="360" step="1" value="120"></label>
+</div>
+<div id="bar" class="glass">
+  <button data-v="oblique">Overview</button><button data-v="top">Plan</button><button data-v="low">Eye level</button><button data-a="orbit">Orbit</button>
+  <span class="sep"></span><button data-a="dist">Distance</button><button data-a="area">Area</button><button data-a="clear">Clear</button>
+  <span class="sep"></span><button data-a="layers">Layers</button><button data-a="share">Share view</button>
+</div>
+<div id="toast" class="glass"></div>
+<div id="foot">Boundaries indicative · heights estimated from imagery · surrounding imagery © Esri, Maxar · survey by The Drone Agency</div>
+
+<script>addEventListener("error",e=>{window.__err=(e.message||"")+" @"+e.lineno});addEventListener("unhandledrejection",e=>{window.__err="rej: "+(e.reason&&e.reason.stack||e.reason)});</script>
+<script type="importmap">{ "imports": { "three": "./a/three.module.js" } }</script>
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "./a/OrbitControls.js";
+import { Line2 } from "./jsm/lines/Line2.js";
+import { LineGeometry } from "./jsm/lines/LineGeometry.js";
+import { LineMaterial } from "./jsm/lines/LineMaterial.js";
+import { EffectComposer } from "./jsm/postprocessing/EffectComposer.js";
+import { RenderPass } from "./jsm/postprocessing/RenderPass.js";
+import { GTAOPass } from "./jsm/postprocessing/GTAOPass.js";
+import { OutputPass } from "./jsm/postprocessing/OutputPass.js";
+
+const q = new URLSearchParams(location.search), $ = id => document.getElementById(id);
+const touch = matchMedia("(pointer:coarse)").matches, small = Math.min(screen.width, screen.height) < 700 || Math.min(innerWidth, innerHeight) < 500;
+const portrait = () => innerHeight > innerWidth, lite = q.has("lite") ? q.get("lite") !== "0" : (touch || small);    // phones and tablets: lighter textures, no contact shading
+let dirty = true; const PAPER = 0xece9e3, EX = 10;                        // EX: relief scale the height map was tuned for
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.NeutralToneMapping; renderer.toneMappingExposure = 1.0;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = lite ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
+document.body.prepend(renderer.domElement);
+
+const scene = new THREE.Scene(), overlay = new THREE.Scene();   // overlay: boundaries and measurements, drawn crisp on top after the post-processing
+scene.background = new THREE.Color(PAPER); scene.fog = new THREE.Fog(PAPER, 1400, 3600);
+const camera = new THREE.PerspectiveCamera(portrait() ? 52 : 36, innerWidth / innerHeight, 2, 8000);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = 0.07; controls.maxPolarAngle = Math.PI * 0.475; controls.minDistance = 35; controls.maxDistance = 1700; controls.zoomSpeed = 0.9; controls.rotateSpeed = 0.55;
+controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
+
+scene.add(new THREE.HemisphereLight(0xf4f7ff, 0x8a7a66, 1.25));
+const sun = new THREE.DirectionalLight(0xfff0dd, 2.1); sun.castShadow = true;
+Object.assign(sun.shadow.camera, { left: -340, right: 340, top: 340, bottom: -340, near: 1, far: 1500 }); sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.6; sun.shadow.radius = 2.5;
+sun.shadow.mapSize.set(lite ? 2048 : 4096, lite ? 2048 : 4096); scene.add(sun, sun.target);
+
+const loadImg = src => new Promise((ok, err) => { const i = new Image(); i.onload = () => ok(i); i.onerror = err; i.src = src; });
+const J = async u => (await fetch(u)).json(), texLoader = new THREE.TextureLoader();
+const [AL, SEAM, TJ, BJ, SITE] = await Promise.all([J("a/align.json"), J("a/seam.json"), J("a/trees.json"), J("a/buildings.json"), J("site.json")]);
+const [SW, SH] = AL.sat_size, SPX = AL.sat_px_m, [DW, DH] = AL.drone_size, A = AL.A, TREES = TJ.trees, BLD = BJ.buildings;
+const DPX = Math.hypot(A[0][0], A[1][0]) * SPX;        // metres per photo px
+function seamAt(u, v) {
+  const fx = Math.min(Math.max(u / DW, 0), 1) * (SEAM.gx - 1), fy = Math.min(Math.max(v / DH, 0), 1) * (SEAM.gy - 1);
+  const x0 = Math.min(Math.floor(fx), SEAM.gx - 2), y0 = Math.min(Math.floor(fy), SEAM.gy - 2), tx = fx - x0, ty = fy - y0, d = SEAM.d;
+  const l = k => (d[y0][x0][k] * (1 - tx) + d[y0][x0 + 1][k] * tx) * (1 - ty) + (d[y0 + 1][x0][k] * (1 - tx) + d[y0 + 1][x0 + 1][k] * tx) * ty;
+  return [l(0), l(1)];
+}
+const toWorld = (u, v) => { const [dx, dy] = seamAt(u, v); return [(A[0][0] * u + A[0][1] * v + A[0][2] + dx - SW / 2) * SPX, (A[1][0] * u + A[1][1] * v + A[1][2] + dy - SH / 2) * SPX]; };
+const det = A[0][0] * A[1][1] - A[0][1] * A[1][0];
+const toPhoto = (x, z) => { const X = x / SPX + SW / 2 - A[0][2], Y = z / SPX + SH / 2 - A[1][2]; return [(A[1][1] * X - A[0][1] * Y) / det, (-A[1][0] * X + A[0][0] * Y) / det]; };   // inverse, without the small seam correction
+const corners = [[0, 0], [DW, 0], [DW, DH], [0, DH]].map(([u, v]) => toWorld(u, v));
+const CX = corners.reduce((a, c) => a + c[0], 0) / 4, CZ = corners.reduce((a, c) => a + c[1], 0) / 4;
+
+// ---- ground: satellite context fading into the paper, the drone photo with a feathered edge on gentle relief
+let hts, hw, hh;
+const gAt = (u, v) => (u < 0 || v < 0 || u > DW || v > DH) ? 0 : hts[Math.min(hh - 1, Math.max(0, Math.round(v / DH * (hh - 1)))) * hw + Math.min(hw - 1, Math.max(0, Math.round(u / DW * (hw - 1))))];
+const groundY = (x, z) => gAt(...toPhoto(x, z)) * EX;
+function fadeTex(draw, w = 512, h = 384) { const c = document.createElement("canvas"); c.width = w; c.height = h; draw(c.getContext("2d"), w, h); const t = new THREE.CanvasTexture(c); return t; }
+const tag = lite ? "sd" : "hd";
+$("load-t").textContent = "Loading imagery";
+const [hImg, satImg, tex0] = await Promise.all([loadImg(`a/height_${tag}.png`), loadImg(`a/sat_${tag}.jpg`), texLoader.loadAsync(`tex_${tag}.jpg`)]);
+const maxAniso = Math.min(16, renderer.capabilities.getMaxAnisotropy()); let tex = tex0; tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = maxAniso;
+{ // satellite: softened and slightly desaturated so the surveyed land is the subject
+  const c = document.createElement("canvas"); c.width = satImg.width; c.height = satImg.height; const x = c.getContext("2d"); x.filter = "saturate(.62) brightness(1.04) contrast(.94)"; x.drawImage(satImg, 0, 0);
+  const st = new THREE.CanvasTexture(c); st.colorSpace = THREE.SRGBColorSpace; st.anisotropy = maxAniso;
+  const alpha = fadeTex((g, w, h) => { const r = g.createRadialGradient(w / 2, h / 2, h * 0.30, w / 2, h / 2, h * 0.56); r.addColorStop(0, "#fff"); r.addColorStop(1, "#000"); g.fillStyle = r; g.save(); g.translate(w / 2, h / 2); g.scale(1.25, 1); g.translate(-w / 2, -h / 2); g.fillRect(-w, -h, w * 3, h * 3); g.restore(); });
+  const sat = new THREE.Mesh(new THREE.PlaneGeometry(SW * SPX, SH * SPX).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ map: st, alphaMap: alpha, transparent: true, roughness: 1, depthWrite: false }));
+  sat.position.y = -0.5; sat.receiveShadow = true; sat.renderOrder = -2; scene.add(sat);
+}
+const c = document.createElement("canvas"); c.width = hw = hImg.width; c.height = hh = hImg.height; const cx2 = c.getContext("2d", { willReadFrequently: true }); cx2.drawImage(hImg, 0, 0);
+{ const px = cx2.getImageData(0, 0, hw, hh).data, n = hw * hh; hts = new Float32Array(n); for (let i = 0; i < n; i++) hts[i] = (px[i * 4] * 256 + px[i * 4 + 1]) / 65535 * 1.3; }
+const geo = new THREE.PlaneGeometry(1, 1, hw - 1, hh - 1);
+{ const gp = geo.attributes.position; for (let iy = 0; iy < hh; iy++) for (let ix = 0; ix < hw; ix++) { const [x, z] = toWorld(ix / (hw - 1) * DW, iy / (hh - 1) * DH); gp.setXYZ(iy * hw + ix, x, hts[iy * hw + ix] * EX, z); } geo.computeVertexNormals(); }
+const edge = fadeTex((g, w, h) => { g.fillStyle = "#000"; g.fillRect(0, 0, w, h); g.filter = "blur(7px)"; g.fillStyle = "#fff"; g.fillRect(12, 12, w - 24, h - 24); });
+const ground = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: tex, alphaMap: edge, transparent: true, roughness: 0.96, metalness: 0 }));
+ground.material.color.setScalar(1.4); ground.castShadow = ground.receiveShadow = true; ground.renderOrder = -1; scene.add(ground);   // a touch over 1: the photo already holds its own shadows, the scene adds more
+
+// ---- structures: extruded from the AI roof outlines, the real roof from the photo on top, clean pale walls
+const bld = new THREE.Group(), roofM = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.75, side: THREE.DoubleSide }), wallM = new THREE.MeshStandardMaterial({ color: 0xf1eee8, roughness: 0.9, side: THREE.DoubleSide });
+for (const b of BLD) {
+  let P = b.poly.map(p => p.slice()), n = P.length, ridge = 0, roofIdx, gables = []; const R = [];
+  if (b.roof === "gable") {
+    const w = P.map(([u, v]) => toWorld(u, v)), d = (i, j) => Math.hypot(w[i][0] - w[j][0], w[i][1] - w[j][1]); if (d(0, 1) < d(1, 2)) P = [P[1], P[2], P[3], P[0]];
+    const mid = (i, j) => [(P[i][0] + P[j][0]) / 2, (P[i][1] + P[j][1]) / 2]; P.forEach(p => R.push([p[0], p[1], 0])); R.push([...mid(1, 2), 1], [...mid(3, 0), 1]);
+    roofIdx = [0, 1, 4, 0, 4, 5, 2, 3, 5, 2, 5, 4]; gables = [[1, 2, 4], [3, 0, 5]]; const ww = P.map(([u, v]) => toWorld(u, v)); ridge = 0.2 * Math.hypot(ww[1][0] - ww[2][0], ww[1][1] - ww[2][1]);
+  } else { P.forEach(p => R.push([p[0], p[1], 0])); roofIdx = THREE.ShapeUtils.triangulateShape(P.map(([u, v]) => new THREE.Vector2(u, v)), []).flat(); }
+  const rw = R.map(([u, v]) => toWorld(u, v)), cu = P.reduce((a, p) => a + p[0], 0) / n, cv = P.reduce((a, p) => a + p[1], 0) / n;
+  const y0 = gAt(cu, cv) * EX, y1 = y0 + (0.25 + 0.6 * b.h) * EX, Y = i => R[i][2] ? y1 + ridge : y1;
+  const roof = new THREE.BufferGeometry(); roof.setAttribute("position", new THREE.Float32BufferAttribute(rw.flatMap(([x, z], i) => [x, Y(i), z]), 3)); roof.setAttribute("uv", new THREE.Float32BufferAttribute(R.flatMap(([u, v]) => [u / DW, 1 - v / DH]), 2)); roof.setIndex(roofIdx); roof.computeVertexNormals();
+  const wp = [], wi = []; for (let i = 0; i < n; i++) { const [x, z] = rw[i], [x2, z2] = rw[(i + 1) % n], o = i * 4; wp.push(x, y1, z, x2, y1, z2, x, y0 - 1, z, x2, y0 - 1, z2); wi.push(o, o + 1, o + 2, o + 2, o + 1, o + 3); }
+  gables.forEach(tri => { const o = wp.length / 3; tri.forEach(i => wp.push(rw[i][0], Y(i), rw[i][1])); wi.push(o, o + 1, o + 2); });
+  const wall = new THREE.BufferGeometry(); wall.setAttribute("position", new THREE.Float32BufferAttribute(wp, 3)); wall.setIndex(wi); wall.computeVertexNormals();
+  const rm = new THREE.Mesh(roof, roofM), wm = new THREE.Mesh(wall, wallM); rm.castShadow = wm.castShadow = rm.receiveShadow = wm.receiveShadow = true; bld.add(rm, wm);
+}
+roofM.color.setScalar(1.25); scene.add(bld);
+
+// ---- trees: crowns carry the photo projected straight down, so every tree is its own colour; palms get fronds
+const rnd = (a, b, c) => { const x = Math.sin(a * 127.1 + b * 311.7 + c * 74.7) * 43758.5453; return x - Math.floor(x); };
+const treeG = new THREE.Group(); let treeMesh;
+{
+  const icoBig = new THREE.IcosahedronGeometry(1, lite ? 1 : 2).attributes.position, icoSm = new THREE.IcosahedronGeometry(1, 1).attributes.position, lobes = [], T = TREES.length;
+  TREES.forEach(([cx, cy, rx, ry, ht, palm], t) => { if (palm) return;
+    if (!lite && (rx + ry) / 2 > 26) { lobes.push([t, 0, 0, 0.74, 0.22, icoSm]); for (let k = 0; k < 4; k++) { const a = k * 1.571 + rnd(t, k, 1) * 1.2, o = 0.42 + 0.1 * rnd(t, k, 2); lobes.push([t, Math.cos(a) * o, Math.sin(a) * o, 0.5 + 0.12 * rnd(t, k, 3), -0.28 + 0.2 * rnd(t, k, 4), icoSm]); } }
+    else lobes.push([t, 0, 0, 1, 0, icoBig]); });
+  const y0 = new Float32Array(T), low = new Float32Array(T), half = new Float32Array(T), trunks = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.7, 1, 1, 6).translate(0, 0.5, 0), new THREE.MeshStandardMaterial({ color: 0x5e4a36, roughness: 1 }), T), m4 = new THREE.Matrix4();
+  TREES.forEach(([cx, cy, rx, ry, ht, palm], t) => { const rw = (rx + ry) / 2 * DPX; y0[t] = gAt(cx, cy) * EX;
+    if (palm) { low[t] = Math.max(ht * EX * 1.6, 2.2 * rw); half[t] = 0; } else { const H = Math.max(ht * EX, 1.5 * rw); half[t] = Math.min(0.38 * H, Math.max(0.35 * H, 0.75 * rw)); low[t] = H - 2 * half[t]; }
+    const [x, z] = toWorld(cx, cy), r = palm ? 0.24 : Math.max(0.12, Math.min(0.45, (rx + ry) * 0.0012)); trunks.setMatrixAt(t, m4.makeScale(r, Math.max(palm ? low[t] + 0.3 : low[t] + half[t] * 0.6, 0.01), r).setPosition(x, y0[t] - 0.3, z)); });
+  const total = lobes.reduce((a, l) => a + l[5].count, 0), pos = new Float32Array(total * 3), uv = new Float32Array(total * 2), col = new Float32Array(total * 3); let o = 0;
+  lobes.forEach(([t, ox, oz, sc, yo, ip], li) => { const [cx, cy, rx, ry] = TREES[t];
+    for (let i = 0; i < ip.count; i++, o++) { const k = 0.86 + 0.28 * rnd(Math.round(ip.getX(i) * 50) + li, Math.round(ip.getY(i) * 50), Math.round(ip.getZ(i) * 50));
+      const sx = ox + ip.getX(i) * k * sc, sy = yo + ip.getY(i) * k * sc, sz = oz + ip.getZ(i) * k * sc, [x, z] = toWorld(cx + sx * rx, cy + sz * ry);
+      pos[o * 3] = x; pos[o * 3 + 1] = y0[t] + low[t] + half[t] * (1 + sy); pos[o * 3 + 2] = z; uv[o * 2] = (cx + sx * rx * 0.62) / DW; uv[o * 2 + 1] = 1 - (cy + sz * ry * 0.62) / DH;
+      const s = 0.55 + 0.45 * Math.min(1, Math.max(0, (sy + 1) / 1.6)); col[o * 3] = col[o * 3 + 1] = col[o * 3 + 2] = s; } });
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(pos, 3)); g.setAttribute("uv", new THREE.BufferAttribute(uv, 2)); g.setAttribute("color", new THREE.BufferAttribute(col, 3)); g.computeVertexNormals();
+  treeMesh = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: tex, roughness: 1, vertexColors: true, emissive: 0x0c1807 })); treeMesh.castShadow = treeMesh.receiveShadow = true; trunks.castShadow = true;
+  const pv = [], pc = [], pi = [], F = 13, S = 5;
+  TREES.forEach(([cx, cy, rx, ry, ht, palm], t) => { if (!palm) return; const [x0, z0] = toWorld(cx, cy), L = (rx + ry) / 2 * DPX * 1.05;
+    for (let f = 0; f < F; f++) { const a = f / F * 6.2832 + rnd(t, f, 5) * 0.4, dx = Math.cos(a), dz = Math.sin(a), lift = 0.25 + 0.3 * rnd(t, f, 6), base = pv.length / 3, sh = 0.75 + 0.35 * rnd(t, f, 7);
+      for (let k = 0; k <= S; k++) { const qq = k / S, r = qq * L, w = 0.16 * L * Math.sin(Math.PI * Math.min(1, qq * 0.9 + 0.1)), y = y0[t] + low[t] + L * (lift * qq - 0.75 * qq * qq);
+        for (const sg of [-1, 1]) { pv.push(x0 + dx * r - dz * w * sg, y, z0 + dz * r + dx * w * sg); pc.push(0.30 * sh, 0.46 * sh, 0.20 * sh); } if (k < S) { const v = base + k * 2; pi.push(v, v + 1, v + 2, v + 2, v + 1, v + 3); } } } });
+  const pg = new THREE.BufferGeometry(); pg.setAttribute("position", new THREE.Float32BufferAttribute(pv, 3)); pg.setAttribute("color", new THREE.Float32BufferAttribute(pc, 3)); pg.setIndex(pi); pg.computeVertexNormals();
+  const palms = new THREE.Mesh(pg, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, side: THREE.DoubleSide })); palms.castShadow = true;
+  treeG.add(treeMesh, trunks, palms); scene.add(treeG);
+}
+
+// ---- parcels: thin white boundary with a soft dark under-line, draped on the relief; fill only on hover or selection
+const RES = new THREE.Vector2(innerWidth, innerHeight), lineMats = [];
+const lineMat = (color, width, opacity) => { const m = new LineMaterial({ color, linewidth: width, transparent: true, opacity, depthTest: false, depthWrite: false, fog: false }); m.resolution.copy(RES); lineMats.push(m); return m; };
+const mUnder = lineMat(0x0e140f, 4.2, 0.28), mLine = lineMat(0xffffff, 1.6, 0.95), mSel = lineMat(0xffd9a0, 2.6, 1), mMeas = lineMat(0xffd9a0, 2.4, 1);
+function drape(ring, close = true, lift = 0.8) { const out = [], n = ring.length, m = close ? n : n - 1;
+  for (let i = 0; i < m; i++) { const [x, z] = ring[i], [x2, z2] = ring[(i + 1) % n], steps = Math.max(1, Math.ceil(Math.hypot(x2 - x, z2 - z) / 6)); for (let s = 0; s < steps; s++) { const px = x + (x2 - x) * s / steps, pz = z + (z2 - z) * s / steps; out.push(px, groundY(px, pz) + lift, pz); } }
+  const [lx, lz] = close ? ring[0] : ring[n - 1]; out.push(lx, groundY(lx, lz) + lift, lz); return out; }
+const line = (pts, mat, order) => { const g = new LineGeometry(); g.setPositions(pts); const l = new Line2(g, mat); l.renderOrder = order; l.frustumCulled = false; return l; };
+const parcelG = new THREE.Group(), fillM = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.14, depthTest: false, depthWrite: false, fog: false }), fillSel = fillM.clone(); fillSel.color.set(0xffd9a0); fillSel.opacity = 0.2;
+const AC = 4046.8564, fmtAc = m2 => (m2 / AC).toFixed(2), acGu = m2 => { const a = m2 / AC, w = Math.floor(a), g = Math.round((a - w) * 40); return g === 40 ? `${w + 1} ac 0 g` : `${w} ac ${g} g`; };
+const parcels = SITE.parcels.map(p => {
+  const ring = p.ring.slice(0, -1).length >= 3 && p.ring[0][0] === p.ring.at(-1)[0] && p.ring[0][1] === p.ring.at(-1)[1] ? p.ring.slice(0, -1) : p.ring, pts = drape(ring);
+  const under = line(pts, mUnder, 1), top = line(pts, mLine, 2), sel = line(pts, mSel, 4); sel.visible = false;
+  const tri = THREE.ShapeUtils.triangulateShape(ring.map(([x, z]) => new THREE.Vector2(x, z)), []).flat(), fg = new THREE.BufferGeometry(), cy = groundY(...p.at);
+  fg.setAttribute("position", new THREE.Float32BufferAttribute(ring.flatMap(([x, z]) => [x, groundY(x, z) + 0.5, z]), 3)); fg.setIndex(tri);
+  const fill = new THREE.Mesh(fg, fillM); fill.visible = false; fill.renderOrder = 0; fill.frustumCulled = false; parcelG.add(fill, under, top, sel);
+  return { ...p, ring, fill, sel, pos: new THREE.Vector3(p.at[0], cy + 2, p.at[1]) };
+});
+overlay.add(parcelG);
+const inRing = (x, z, r) => { let c = false; for (let i = 0, j = r.length - 1; i < r.length; j = i++) if ((r[i][1] > z) !== (r[j][1] > z) && x < (r[j][0] - r[i][0]) * (z - r[i][1]) / (r[j][1] - r[i][1]) + r[i][0]) c = !c; return c; };
+
+// ---- labels (HTML, so type stays crisp): parcels and places, hidden when they would collide
+const labEl = $("labels"), labs = [];
+function addLabel(cls, html, pos, prio) { const el = document.createElement("div"); el.className = "lab " + cls; el.innerHTML = html; labEl.appendChild(el); const l = { el, pos, prio, cls, w: 0, h: 0 }; labs.push(l); return l; }
+parcels.forEach(p => p.lab = addLabel("p", `PARCEL ${p.id}<small>${fmtAc(p.m2)} ac</small>`, p.pos, 1));
+SITE.pois.forEach(o => addLabel("poi", o.name, new THREE.Vector3(o.at[0], groundY(...o.at) + 9, o.at[1]), 2));
+let showLabels = true; const _v = new THREE.Vector3();
+function layoutLabels() { const placed = [], dist = camera.position.distanceTo(controls.target);
+  for (const l of [...labs].sort((a, b) => a.prio - b.prio)) { _v.copy(l.pos).project(camera); const x = (_v.x + 1) / 2 * innerWidth, y = (1 - _v.y) / 2 * innerHeight;
+    let ok = (showLabels || l.cls === "m") && _v.z < 1 && x > -40 && x < innerWidth + 40 && y > -20 && y < innerHeight + 20 && !(l.cls === "p" && dist > 1300);
+    if (!l.w) { l.w = l.el.offsetWidth + 10; l.h = l.el.offsetHeight + 6; }
+    if (ok && l.cls !== "m") { for (const r of placed) if (Math.abs(r.x - x) < (r.w + l.w) / 2 && Math.abs(r.y - y) < (r.h + l.h) / 2) { ok = false; break; } }
+    if (ok) { placed.push({ x, y, w: l.w, h: l.h }); l.el.style.transform = `translate(-50%,-50%) translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`; } l.el.style.opacity = ok ? 1 : 0; } }
+
+// ---- picking on the relief without ray-casting a million triangles: step the ray onto the height field
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+function pick(ev) { ndc.set(ev.clientX / innerWidth * 2 - 1, -(ev.clientY / innerHeight) * 2 + 1); ray.setFromCamera(ndc, camera); const o = ray.ray.origin, d = ray.ray.direction; if (d.y >= -1e-4) return null;
+  let y = 0, p = new THREE.Vector3(); for (let i = 0; i < 4; i++) { p.copy(o).addScaledVector(d, (y - o.y) / d.y); y = groundY(p.x, p.z); } p.y = y; return p; }
+
+// ---- camera moves
+let tween = null; const ease = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+function flyTo(pos, tgt, ms = 1700) { stopOrbit(); tween = { p0: camera.position.clone(), t0: controls.target.clone(), p1: pos, t1: tgt, s: performance.now(), ms }; dirty = true; }
+const views = { oblique: [[-250, 300, 520], [0, 0, 20]], top: [[0, 900, 1], [0, 0, 0]], low: [[260, 120, 340], [-10, 0, 30]] };
+function go(v, ms) { const [p, t] = views[v], k = portrait() ? 1.7 : 1; flyTo(new THREE.Vector3(CX + p[0] * k, p[1] * k, CZ + p[2] * k), new THREE.Vector3(CX + t[0], t[1], CZ + t[2]), ms); }
+const orbitBtn = document.querySelector('[data-a="orbit"]');
+function startOrbit() { controls.autoRotate = true; controls.autoRotateSpeed = 0.45; orbitBtn.classList.add("on"); } function stopOrbit() { controls.autoRotate = false; orbitBtn.classList.remove("on"); }
+function setSun(deg) { const r = THREE.MathUtils.degToRad(deg); sun.position.set(CX + Math.cos(r) * 300, 250, CZ + Math.sin(r) * 300); sun.target.position.set(CX, 0, CZ); dirty = true; }
+
+// ---- parcel card and list
+let selP = null, hovP = null;
+function select(p, fly = true) { if (selP) { selP.sel.visible = false; selP.fill.visible = false; selP.fill.material = fillM; } selP = p; document.querySelectorAll("#plist button").forEach(b => b.classList.toggle("sel", p && b.dataset.id === p.id));
+  if (!p) { $("card").style.display = "none"; dirty = true; return; } p.sel.visible = true; p.fill.visible = true; p.fill.material = fillSel;
+  $("c-t").textContent = `Parcel ${p.id}`; $("c-d").innerHTML = [["Area", `${fmtAc(p.m2)} acres`], ["", acGu(p.m2)], ["", `${Math.round(p.m2 * 10.7639).toLocaleString("en-IN")} sq ft`], ["", `${(p.m2 / 1e4).toFixed(2)} ha`], ["Perimeter", `${p.perim.toLocaleString("en-IN")} m`]].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
+  $("card").style.display = "block";
+  if (fly) { const r = Math.sqrt(p.m2), dir = camera.position.clone().sub(controls.target).setY(0).normalize(), t = new THREE.Vector3(p.at[0], groundY(...p.at), p.at[1]); flyTo(t.clone().addScaledVector(dir, r * 1.5).setY(t.y + r * 1.15), t, 1500); } dirty = true; }
+$("plist").innerHTML = parcels.map(p => `<button data-id="${p.id}"><span>Parcel ${p.id}</span><span>${fmtAc(p.m2)} ac</span></button>`).join("");
+$("plist").onclick = e => { const b = e.target.closest("button"); if (b) select(parcels.find(p => p.id === b.dataset.id)); };
+$("plist-h").onclick = () => $("brand").classList.toggle("open"); document.querySelector("#card .x").onclick = () => select(null);
+$("s-ac").textContent = (parcels.reduce((a, p) => a + p.m2, 0) / AC).toFixed(1); $("s-pc").textContent = parcels.length; $("s-st").textContent = BLD.length;
+
+// ---- measuring
+let mode = null, mPts = [], mLive = null, mLab = null; const measG = new THREE.Group(); overlay.add(measG); const dots = [];
+const lenOf = a => a.reduce((s, p, i) => i ? s + p.distanceTo(a[i - 1]) : 0, 0), areaOf = a => Math.abs(a.reduce((s, p, i) => { const n = a[(i + 1) % a.length]; return s + p.x * n.z - n.x * p.z; }, 0)) / 2;
+const mText = () => mode === "dist" ? (mPts.length < 2 ? "Click along the line" : `${lenOf(mPts).toFixed(1)} m · ${(lenOf(mPts) * 3.28084).toFixed(0)} ft`) : (mPts.length < 3 ? "Click the corners" : `${fmtAc(areaOf(mPts))} ac · ${Math.round(areaOf(mPts) * 10.7639).toLocaleString("en-IN")} sq ft`);
+function redrawMeasure() { if (mLive) { measG.remove(mLive); mLive.geometry.dispose(); mLive = null; } if (mPts.length > 1) { const ring = mPts.map(p => [p.x, p.z]); mLive = line(drape(ring, mode === "area" && mPts.length > 2, 1.2), mMeas, 6); measG.add(mLive); }
+  if (mLab && mPts.length) { mLab.el.textContent = mText(); mLab.w = 0; const c = mPts.reduce((a, p) => a.add(p), new THREE.Vector3()).multiplyScalar(1 / mPts.length); mLab.pos.copy(mode === "dist" ? mPts.at(-1) : c).y += 6; } dirty = true; }
+function startMeasure(m) { endMeasure(); mode = m; mPts = []; mLab = addLabel("m", mText(), new THREE.Vector3(0, -1e4, 0), 0); toast(m === "dist" ? "Click points along the line · double-click to finish" : "Click the corners · double-click to finish"); setBar(); }
+function endMeasure() { if (mode && mLive && mPts.length > (mode === "dist" ? 1 : 2)) { mLive = null; mLab = null; } else if (mLab) { labEl.removeChild(mLab.el); labs.splice(labs.indexOf(mLab), 1); if (mLive) measG.remove(mLive); } mode = null; mPts = []; mLive = null; mLab = null; setBar(); dirty = true; }
+function clearMeasure() { endMeasure(); measG.clear(); for (let i = labs.length - 1; i >= 0; i--) if (labs[i].cls === "m") { labEl.removeChild(labs[i].el); labs.splice(i, 1); } dirty = true; }
+const setBar = () => { document.querySelector('[data-a="dist"]').classList.toggle("on", mode === "dist"); document.querySelector('[data-a="area"]').classList.toggle("on", mode === "area"); };
+let toastT; function toast(t) { const el = $("toast"); el.textContent = t; el.style.opacity = 1; clearTimeout(toastT); toastT = setTimeout(() => el.style.opacity = 0, 3200); }
+
+// ---- pointer: hover, click, double-click (fly in and circle the spot)
+const cv = renderer.domElement; let down = null, lastClick = 0;
+cv.addEventListener("pointerdown", e => { down = [e.clientX, e.clientY]; stopOrbit(); tween = null; });
+cv.addEventListener("wheel", () => { stopOrbit(); tween = null; }, { passive: true });
+cv.addEventListener("pointermove", e => { if (touch || mode || e.buttons) return; const p = pick(e), h = p ? parcels.find(a => parcelG.visible && inRing(p.x, p.z, a.ring)) : null;
+  if (h !== hovP) { if (hovP && hovP !== selP) hovP.fill.visible = false; hovP = h; if (h && h !== selP) { h.fill.material = fillM; h.fill.visible = true; } cv.style.cursor = h ? "pointer" : ""; dirty = true; } });
+cv.addEventListener("pointerup", e => { if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 6) return; const p = pick(e), now = performance.now(), dbl = now - lastClick < 320; lastClick = now; if (!p) return;
+  if (mode) { if (dbl) { mPts.pop(); redrawMeasure(); endMeasure(); } else { mPts.push(p); redrawMeasure(); } return; }
+  if (dbl) { const d = THREE.MathUtils.clamp(camera.position.distanceTo(p) * 0.45, 60, 500), dir = camera.position.clone().sub(controls.target).normalize(); if (dir.y < 0.42) dir.setY(0.42).normalize(); flyTo(p.clone().addScaledVector(dir, d), p.clone(), 1300); setTimeout(startOrbit, 1350); return; }
+  const hit = parcelG.visible ? parcels.find(a => inRing(p.x, p.z, a.ring)) : null; setTimeout(() => { if (performance.now() - lastClick >= 300) select(hit || null, false); }, 310); });
+
+// ---- toolbar, layers, share
+$("bar").onclick = e => { const b = e.target.closest("button"); if (!b) return; const v = b.dataset.v, a = b.dataset.a; if (v) return go(v);
+  if (a === "orbit") controls.autoRotate ? stopOrbit() : startOrbit(); else if (a === "dist" || a === "area") mode === a ? endMeasure() : startMeasure(a); else if (a === "clear") clearMeasure();
+  else if (a === "layers") { const p = $("pop"); p.style.display = p.style.display === "block" ? "none" : "block"; b.classList.toggle("on", p.style.display === "block"); }
+  else if (a === "share") { const r = n => Math.round(n), u = new URL(location.href); u.search = ""; u.searchParams.set("cam", [camera.position.x - CX, camera.position.y, camera.position.z - CZ, controls.target.x - CX, controls.target.y, controls.target.z - CZ].map(r).join(",")); if (selP) u.searchParams.set("parcel", selP.id);
+    (navigator.clipboard?.writeText(u.href) || Promise.reject()).then(() => toast("Link to this view copied"), () => prompt("Copy this link", u.href)); } dirty = true; };
+$("pop").addEventListener("change", e => { const l = e.target.dataset.l; if (!l) return; const on = e.target.checked; if (l === "parcels") parcelG.visible = on; else if (l === "labels") showLabels = on; else if (l === "trees") treeG.visible = on; else if (l === "structures") bld.visible = on; dirty = true; });
+$("sun").addEventListener("input", e => setSun(+e.target.value));
+
+// ---- post: soft contact shading where trees and buildings meet the ground (desktop), then tone mapping
+let composer = null;
+if (!lite) { const rt = new THREE.WebGLRenderTarget(1, 1, { samples: 4, type: THREE.HalfFloatType }); composer = new EffectComposer(renderer, rt); composer.addPass(new RenderPass(scene, camera));
+  const ao = new GTAOPass(scene, camera, innerWidth, innerHeight); ao.blendIntensity = 0.85; ao.updateGtaoMaterial({ radius: 7, distanceExponent: 1.4, thickness: 2.2, scale: 1.15, samples: 16, screenSpaceRadius: false }); ao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 16 });
+  composer.addPass(ao); composer.addPass(new OutputPass()); composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(innerWidth, innerHeight); }
+function resize() { camera.aspect = innerWidth / innerHeight; camera.fov = portrait() ? 52 : 36; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); composer?.setSize(innerWidth, innerHeight); RES.set(innerWidth, innerHeight); lineMats.forEach(m => m.resolution.copy(RES)); labs.forEach(l => l.w = 0); dirty = true; }
+addEventListener("resize", resize); addEventListener("orientationchange", () => setTimeout(resize, 200));
+
+// ---- start: glide in from high up, then circle slowly until the first touch
+setSun(120);
+if (q.get("cam")) { const c = q.get("cam").split(",").map(Number); camera.position.set(CX + c[0], c[1], CZ + c[2]); controls.target.set(CX + c[3], c[4], CZ + c[5]); controls.update(); if (q.get("parcel")) select(parcels.find(p => p.id === q.get("parcel")) || null, false); }
+else if (q.get("view")) { const [p, t] = views[q.get("view")] || views.oblique; camera.position.set(CX + p[0], p[1], CZ + p[2]); controls.target.set(CX + t[0], t[1], CZ + t[2]); controls.update(); }
+else { camera.position.set(CX - 60, 1500, CZ + 900); controls.target.set(CX, 0, CZ + 20); controls.update(); go("oblique", 3200); setTimeout(() => { if (!tween && !down) startOrbit(); }, 3400); }
+controls.addEventListener("change", () => dirty = true); ["input", "click", "resize"].forEach(t => addEventListener(t, () => dirty = true, true)); document.fonts?.ready.then(() => { labs.forEach(l => l.w = 0); dirty = true; });
+renderer.setAnimationLoop(() => {
+  if (tween) { const k = Math.min(1, (performance.now() - tween.s) / tween.ms), e = ease(k); camera.position.lerpVectors(tween.p0, tween.p1, e); controls.target.lerpVectors(tween.t0, tween.t1, e); if (k >= 1) tween = null; dirty = true; }
+  if (controls.update() || controls.autoRotate) dirty = true; if (!dirty) return; dirty = false;
+  if (composer) composer.render(); else renderer.render(scene, camera);
+  renderer.autoClear = false; renderer.clearDepth(); renderer.render(overlay, camera); renderer.autoClear = true; layoutLabels();
+});
+$("load").style.opacity = 0; setTimeout(() => $("load").remove(), 900); window.__ready = true;
+
+// sharper ground on capable desktops: swap in the 6,720 px photo once everything is up
+if (!lite && renderer.capabilities.maxTextureSize >= 8192 && q.get("uhd") !== "0") texLoader.loadAsync("tex_uhd.jpg").then(t => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = maxAniso; for (const m of [ground.material, roofM, treeMesh.material]) { m.map = t; m.needsUpdate = true; } tex.dispose(); tex = t; dirty = true; });
+</script>
+</body>
+</html>
