@@ -81,11 +81,17 @@ This was not a mapping flight: the SD card has 3 straight-down photos (500 m, 30
 
 The share links are view-only. The WebODM dashboard at the same host still needs the login.
 
-### 3D from a single photo (AI depth), works on iPhone
+### 3D from a single photo (AI depth) inside the satellite map, works on iPhone
+
+<img src="docs/img/ai3d_drone_vs_satellite.jpg" width="820">
 
 **Live:** https://b650-3070.tail641fa8.ts.net:10000/ (no login, served from the desktop over Tailscale Funnel)
 
 Depth Anything V2 (Large, run locally on the RTX 3070) estimates a height for every pixel of DJI_0995 (350 m, straight down). The large-scale tilt the model adds is removed. The result is draped with the photo in a three.js viewer: orbit, zoom, change the height and the sun.
+
+The photo sits at its true position inside a 2 × 1.5 km block of Esri satellite imagery, outlined in yellow, so the extra detail from the drone (6 cm/px vs about 50 cm/px) is obvious. Placement: DJI_0995 is SIFT-matched to DJI_0001 (already aligned to the satellite), with 1,060 inlier points and a median error of 0.8 m (`align_to_0001.py`). **Wide** shows the whole block.
+
+<img src="docs/img/ai3d_drone_vs_satellite_wide.jpg" width="820">
 
 - **Phones:** the viewer loads a light version by default (2048 px photo, 504×378 grid, about 2.5 MB). It frames portrait screens to fit, redraws only when something moves, and has an **HD** button for the full 4032 px version.
 - **Heights are illustrative, not measured.** Use WebODM or a survey for anything that needs real heights.
@@ -153,5 +159,5 @@ docs/                    README media + make_media.py
 
 - Whole plots are **read from the image**: tracks, hedges and changes in land use. They are not legal boundaries. Before anything goes to TRST01, the aggregator or farmer must confirm each plot against the land records (RTC / survey number).
 - Edges along roads are snapped to within about 1 m. Hand-traced edges along hedges and between fields are accurate to about 1–2 m. The whole photo can be off by a few metres, because it is aligned to satellite imagery.
-- Esri World Imagery is used for alignment and review. Check its licence before any client-facing redistribution.
+- Esri World Imagery is used for alignment, review and the satellite surround in the public 3D viewer. Check its licence before any client-facing redistribution.
 - `samples/TEST_*` files are synthetic, not real farms.

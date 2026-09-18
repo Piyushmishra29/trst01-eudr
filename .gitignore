@@ -34,6 +34,7 @@ test-data/bagalur/ai3d/*
 !test-data/bagalur/ai3d/web/
 !test-data/bagalur/ai3d/*.py
 !test-data/bagalur/ai3d/prompt.txt
+test-data/bagalur/ai3d/sat/
 
 # local tool logs
 .gstack/
