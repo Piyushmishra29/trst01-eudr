@@ -2,13 +2,18 @@
 import json, numpy as np, cv2
 from PIL import Image
 def webp(path, bgr, q): Image.fromarray(cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)).save(path, "WEBP", quality=q, method=6)
-from shapely.geometry import Polygon
+def poly(ring):                                           # area, perimeter, and a label point inside the shape (centroid, else the roomiest grid point) - same rule as the page's editor
+    r = np.array(ring[:-1] if ring[0] == ring[-1] else ring, float); x, z = r[:, 0], r[:, 1]; x2, z2 = np.roll(x, -1), np.roll(z, -1); k = x * z2 - x2 * z; a2 = k.sum()
+    at = [((x + x2) * k).sum() / (3 * a2), ((z + z2) * k).sum() / (3 * a2)]; c = np.float32(r)
+    if cv2.pointPolygonTest(c, (float(at[0]), float(at[1])), False) < 0:
+        at = max(((gx, gz) for gx in np.linspace(x.min(), x.max(), 18)[1:-1] for gz in np.linspace(z.min(), z.max(), 18)[1:-1]), key=lambda q: cv2.pointPolygonTest(c, (float(q[0]), float(q[1])), True))
+    return abs(a2) / 2, float(np.hypot(x2 - x, z2 - z).sum()), at
 from build_site_geo import *
 parcels = []
 import os; SRC = "../plots/bagalur_parcels_edited.geojson" if os.path.exists("../plots/bagalur_parcels_edited.geojson") else "../plots/bagalur_whole_plot.eudr.geojson"   # boundaries edited in the page (pull_edits.py) win
 for i, f in enumerate(json.load(open(SRC))["features"]):
-    ring = [world_ll(*c[:2]) for c in f["geometry"]["coordinates"][0]]; p = Polygon(ring); c = p.representative_point()
-    parcels.append(dict(id=f["properties"].get("id") or f"{i + 1:02d}", ring=ring, m2=round(p.area), perim=round(p.length), at=[round(c.x, 1), round(c.y, 1)]))
+    ring = [world_ll(*c[:2]) for c in f["geometry"]["coordinates"][0]]; ar, pe, c = poly(ring)
+    parcels.append(dict(id=f["properties"].get("id") or f"{i + 1:02d}", ring=ring, m2=round(ar), perim=round(pe), at=[round(float(c[0]), 1), round(float(c[1]), 1)]))
 # ---------- focus: everything outside the parcels is dimmed and greyed a little, baked into the images (soft 8 m edge), so the eye goes to the estate
 def focus(img, to_px, m_per_px, dim=0.6, sat=0.55):
     mask = np.zeros(img.shape[:2], np.uint8)
@@ -16,7 +21,7 @@ def focus(img, to_px, m_per_px, dim=0.6, sat=0.55):
     m = cv2.GaussianBlur(mask.astype(np.float32) / 255, (0, 0), max(1.0, 8 / m_per_px / 2))[..., None]; f = img.astype(np.float32); g = f.mean(2, keepdims=True)
     return np.clip(f * m + ((g + (f - g) * sat) * dim + 14) * (1 - m), 0, 255).astype(np.uint8)
 pois = [dict(name=n, at=world_px(u, v)) for n, u, v in [("Polyhouses", 1600, 2760), ("Packing sheds", 660, 1280), ("Farm pond", 1030, 1760), ("Mango orchard", 3400, 520), ("Areca plantation", 1600, 690), ("Solar roof", 3250, 2680)]]
-json.dump(dict(parcels=parcels, pois=pois, surveyed_m2=round(Polygon([world_px(*q) for q in [(0, 0), (DW, 0), (DW, DH), (0, DH)]]).area)), open("web/site.json", "w"), separators=(",", ":"))
+json.dump(dict(parcels=parcels, pois=pois, surveyed_m2=round(poly([world_px(*q) for q in [(0, 0), (DW, 0), (DW, DH), (0, DH)]])[0])), open("web/site.json", "w"), separators=(",", ":"))
 print(len(parcels), "parcels", sum(p["m2"] for p in parcels) / 1e4, "ha")
 im = cv2.imread("../cesium/work/DJI_0995_enh.png")                                  # enhance.py output (8064 x 6048)
 im = (np.clip((im.astype(np.float32) / 255) ** 0.8 * 0.94 + 0.05, 0, 1) * 255).astype(np.uint8)      # open the shadows a little: the 3D scene adds its own shading on top
