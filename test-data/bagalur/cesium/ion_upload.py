@@ -2,7 +2,7 @@
 import json, sys, time, pathlib, requests, boto3
 TOKEN = pathlib.Path("~/.config/cesium/ion-token").expanduser().read_text().strip(); H = {"Authorization": f"Bearer {TOKEN}"}
 src = pathlib.Path(sys.argv[1])
-r = requests.post("https://api.cesium.com/v1/assets", headers=H, json=dict(name="Bagalur drone orthophoto (DJI_0995, 6 cm)", type="IMAGERY",
+r = requests.post("https://api.cesium.com/v1/assets", headers=H, json=dict(name="Bagalur drone orthophoto (DJI_0995, 6 cm, dehazed)", type="IMAGERY",
     description="One DJI Mini 3 Pro nadir photo at 350 m, aligned to satellite. The Drone Agency / TRST01 EUDR test site.", options=dict(sourceType="RASTER_IMAGERY"))); r.raise_for_status(); j = r.json()
 aid = j["assetMetadata"]["id"]; up = j["uploadLocation"]; print("asset", aid)
 s3 = boto3.client("s3", endpoint_url=up["endpoint"], aws_access_key_id=up["accessKey"], aws_secret_access_key=up["secretAccessKey"], aws_session_token=up["sessionToken"], region_name="us-east-1")

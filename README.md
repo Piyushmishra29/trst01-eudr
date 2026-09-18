@@ -127,13 +127,15 @@ The full-resolution photo (6 cm/px) is uploaded to Cesium ion as a tiled imagery
 - the 14 whole plots with area, tap for the EUDR details
 - mango and areca nut (supari) blocks with approximate plant counts (one greenness peak per plant)
 - 1,323 trees and plants and 39 buildings in 3D, a few notes (polyhouses, sheds, ponds, solar roof). Trees are instanced game-style models (trunk, branches, alpha leaf cards; mango-type, coconut and areca), about 1 MB for all of them (`build_trees.py`). Each tree takes the colour of its own crown in the drone photo (9 leaf tints), with light baked in: sunlit top, shaded underside. Every counted orchard plant gets one. Buildings carry the real roof photo, with gable roofs (`build_model.py`). Both sit on Cesium's terrain: the ground rises about 13 m across the farm, so heights are sampled once (`terrain_grid.json`) and baked in
+- the photo is dehazed and sharpened before tiling (`enhance.py`: veil subtraction, local contrast, clipped unsharp mask; classical filters only, no AI super-resolution, so every pixel is still evidence). The page draws at the screen's real pixel density and loads finer tiles sooner
+- double-click (or double-tap) a spot to fly in and circle it until the next touch
 - distance and area measuring, and a 6-step guided tour (`?tour=1` to `?tour=6` link straight to a step)
 
 <img src="docs/img/cesium_tour.jpg" width="820">
 
 <img src="docs/img/cesium_areca.jpg" width="820">
 
-Code is in `test-data/bagalur/cesium/`: `geo.py` (photo pixel to lon/lat with the viewer's alignment), `make_geotiff.py`, `ion_upload.py`, `build_data.py`, `web/`. The page uses a read-only ion token that only opens terrain, Bing imagery and the drone layer, and only from the Bombay host. The admin token stays in `~/.config/cesium/ion-token` and is never published. **Cesium ion's free plan is for non-commercial use**: move to a paid plan before using this page to sell.
+Code is in `test-data/bagalur/cesium/`: `geo.py` (photo pixel to lon/lat with the viewer's alignment), `make_geotiff.py`, `ion_upload.py`, `build_data.py`, `web/`. The page uses a read-only ion token that only works from the Bombay host (other sites get 403; ion does not enforce a per-asset limit on it, so it can read any asset in the account, never write). The admin token stays in `~/.config/cesium/ion-token` and is never published. **Cesium ion's free plan is for non-commercial use**: move to a paid plan before using this page to sell.
 
 ---
 

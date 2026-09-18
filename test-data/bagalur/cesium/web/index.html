@@ -60,7 +60,7 @@
   </div>
   <div class="lbl">Measure</div>
   <div class="row"><button class="chip" id="m-dist">Distance</button><button class="chip" id="m-area">Area</button><button class="chip" id="m-clear">Clear</button></div>
-  <p id="note">Tap anything for details. Plots are read from the image and need checking against land records. Tree and building heights are AI estimates.</p>
+  <p id="note">Tap anything for details. Double-click a spot to fly in and circle it. Plots are read from the image and need checking against land records. Tree and building heights are AI estimates.</p>
 </div>
 
 <div id="info"><button class="x" aria-label="Close">×</button><h2></h2><dl></dl></div>
@@ -81,7 +81,10 @@ const viewer = new C.Viewer("map", {
 const scene = viewer.scene; scene.globe.depthTestAgainstTerrain = true; scene.skyAtmosphere.show = true; scene.fog.enabled = true;
 viewer.cesiumWidget.screenSpaceEventHandler.removeInputAction(C.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
 const drone = viewer.imageryLayers.addImageryProvider(await C.IonImageryProvider.fromAssetId(ION.drone));
-drone.contrast = 1.18; drone.saturation = 1.25; drone.gamma = 0.92;   // lift the haze of a 350 m photo
+drone.saturation = 1.06; drone.gamma = 1.14;                                            /* haze is removed in the file itself now (enhance.py), not with a display filter */
+/* sharpness: draw at the screen's real pixel density (Cesium defaults to CSS pixels, soft on HiDPI) and load finer tiles sooner */
+const coarse = matchMedia("(pointer: coarse)").matches; viewer.useBrowserRecommendedResolution = false; viewer.resolutionScale = coarse ? Math.min(devicePixelRatio, 2) / devicePixelRatio : 1;
+scene.globe.maximumScreenSpaceError = coarse ? 1.6 : 1.2; scene.fog.screenSpaceErrorFactor = 1;
 
 // ---- one button: our drone photo or the satellite image
 const swap = document.getElementById("swap");
@@ -146,7 +149,7 @@ document.getElementById("layers").addEventListener("click", e => { const l = e.t
 // ---- camera
 const centre = C.Cartesian3.fromDegrees(DATA.centre[0], DATA.centre[1], (carto[0]?.height || 880));
 const bs = new C.BoundingSphere(centre, 10);
-const look = (heading, pitch, range, at = centre, duration = 2.4) => new Promise(res => viewer.camera.flyToBoundingSphere(new C.BoundingSphere(at, 10), { offset: new C.HeadingPitchRange(C.Math.toRadians(heading), C.Math.toRadians(pitch), range), duration, complete: res, cancel: res }));
+const look = (heading, pitch, range, at = centre, duration = 2.4) => new Promise(res => { stopOrbit(); viewer.camera.flyToBoundingSphere(new C.BoundingSphere(at, 10), { offset: new C.HeadingPitchRange(C.Math.toRadians(heading), C.Math.toRadians(pitch), range), duration, complete: res, cancel: res }); });
 const at = (lon, lat) => C.Cartesian3.fromDegrees(lon, lat, carto[0]?.height || 880);
 viewer.camera.setView({ destination: C.Cartesian3.fromDegrees(DATA.centre[0], DATA.centre[1], 9000) });
 const home = () => look(20, -38, 900);
@@ -181,7 +184,17 @@ handler.setInputAction(e => {
   const hit = scene.pick(e.position); let i = hit?.id?.properties?.info?.getValue?.();
   if (!i && hit?.primitive === farm) { const g = scene.globe.pick(viewer.camera.getPickRay(e.position), scene); if (g) { const cg = C.Cartographic.fromCartesian(g), pt = [C.Math.toDegrees(cg.longitude), C.Math.toDegrees(cg.latitude)], b = DATA.buildings.find(b => inRing(pt, b.ring)); if (b) i = bldInfo(b); } } if (i) showInfo(i); else infoEl.style.display = "none";
 }, C.ScreenSpaceEventType.LEFT_CLICK);
-handler.setInputAction(() => { if (mode) { pts.pop(); finishMeasure(); } }, C.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
+/* double click / double tap: fly in to that spot, then circle it slowly until the next touch */
+let orbit = null; const stopOrbit = () => { if (orbit) { viewer.clock.onTick.removeEventListener(orbit); orbit = null; viewer.camera.lookAtTransform(C.Matrix4.IDENTITY); } };
+["pointerdown", "wheel"].forEach(ev => scene.canvas.addEventListener(ev, stopOrbit, { passive: true }));
+handler.setInputAction(async e => {
+  if (mode) { pts.pop(); finishMeasure(); return; }
+  const p = scene.pickPositionSupported && scene.pick(e.position) ? scene.pickPosition(e.position) : null, at = p || scene.globe.pick(viewer.camera.getPickRay(e.position), scene); if (!at) return;
+  stopOrbit(); const range = C.Math.clamp(C.Cartesian3.distance(viewer.camera.positionWC, at) * 0.45, 60, 600), pitch = C.Math.toRadians(-32); let h = viewer.camera.heading, t0 = performance.now(), mine;
+  await look(C.Math.toDegrees(h), -32, range, at, 1.4); if (orbit) return;
+  orbit = mine = () => { const t = performance.now(); h += (t - t0) / 1000 * 0.12; t0 = t; viewer.camera.lookAt(at, new C.HeadingPitchRange(h, pitch, range)); scene.requestRender(); };
+  t0 = performance.now(); viewer.clock.onTick.addEventListener(mine);
+}, C.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
 
 // ---- tour
 const B = DATA.blocks, P = DATA.pois, only = (...on) => ["plots", "blocks", "objects", "pois"].forEach(l => { const b = document.querySelector(`[data-l="${l}"]`); b.classList.toggle("on", on.includes(l)); show(l, on.includes(l)); });
