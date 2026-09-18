@@ -116,7 +116,8 @@ Object.assign(sun.shadow.camera, { left: -340, right: 340, top: 340, bottom: -34
 sun.shadow.mapSize.set(lite ? 2048 : 4096, lite ? 2048 : 4096); scene.add(sun, sun.target);
 
 const loadImg = src => new Promise((ok, err) => { const i = new Image(); i.onload = () => ok(i); i.onerror = err; i.src = src; });
-const J = async u => (await fetch(u)).json(), texLoader = new THREE.TextureLoader();
+const J = async u => (await fetch(u)).json(), bmpLoader = new THREE.ImageBitmapLoader().setOptions({ imageOrientation: "flipY", premultiplyAlpha: "none" });
+const texLoader = { loadAsync: async u => { const t = new THREE.Texture(await bmpLoader.loadAsync(u)); t.flipY = false; t.needsUpdate = true; return t; } };   // createImageBitmap decodes in a worker thread: no long main-thread stall for the 12 to 34 MP photos
 const [AL, SEAM, TJ, BJ, SITE] = await Promise.all([J("a/align.json"), J("a/seam.json"), J("a/trees.json"), J("a/buildings.json"), J("site.json")]);
 const [SW, SH] = AL.sat_size, SPX = AL.sat_px_m, [DW, DH] = AL.drone_size, A = AL.A, TREES = TJ.trees, BLD = BJ.buildings;
 const DPX = Math.hypot(A[0][0], A[1][0]) * SPX;        // metres per photo px
@@ -212,36 +213,42 @@ const treeG = new THREE.Group(); let treeMesh;
 // ---- parcels: thin white boundary with a soft dark under-line, draped on the relief; fill only on hover or selection
 const RES = new THREE.Vector2(innerWidth, innerHeight), lineMats = [];
 const lineMat = (color, width, opacity) => { const m = new LineMaterial({ color, linewidth: width, transparent: true, opacity, depthTest: false, depthWrite: false, fog: false }); m.resolution.copy(RES); lineMats.push(m); return m; };
-const mUnder = lineMat(0x0e140f, 4.2, 0.28), mLine = lineMat(0xffffff, 1.6, 0.95), mSel = lineMat(0xffd9a0, 2.6, 1), mMeas = lineMat(0xffd9a0, 2.4, 1);
+const mUnder = lineMat(0x0e140f, 4.2, 0.28), mLine = lineMat(0xffffff, 1.6, 0.95), mGhost = lineMat(0xffffff, 1.2, 0.2), mSel = lineMat(0xffd9a0, 2.6, 1), mMeas = lineMat(0xffd9a0, 2.4, 1);
+for (const m of [mUnder, mLine]) { m.depthTest = true; m.polygonOffset = true; m.polygonOffsetFactor = -2; m.polygonOffsetUnits = -8; }   // these sit in the scene: a boundary behind a tree is hidden by it, so it reads as lying on the ground
 function drape(ring, close = true, lift = 0.8) { const out = [], n = ring.length, m = close ? n : n - 1;
   for (let i = 0; i < m; i++) { const [x, z] = ring[i], [x2, z2] = ring[(i + 1) % n], steps = Math.max(1, Math.ceil(Math.hypot(x2 - x, z2 - z) / 6)); for (let s = 0; s < steps; s++) { const px = x + (x2 - x) * s / steps, pz = z + (z2 - z) * s / steps; out.push(px, groundY(px, pz) + lift, pz); } }
-  const [lx, lz] = close ? ring[0] : ring[n - 1]; out.push(lx, groundY(lx, lz) + lift, lz); return out; }
+  const [lx, lz] = close ? ring[0] : ring[n - 1]; out.push(lx, groundY(lx, lz) + lift, lz);
+  const m3 = out.length / 3, ys = []; for (let i = 0; i < m3; i++) { let a = 0, c = 0; for (let k = -3; k <= 3; k++) { const j = close ? ((i + k) % (m3 - 1) + (m3 - 1)) % (m3 - 1) : Math.min(m3 - 1, Math.max(0, i + k)); a += out[j * 3 + 1]; c++; } ys.push(a / c); }
+  ys.forEach((y, i) => out[i * 3 + 1] = y + 0.5); return out; }   // heights averaged over about 40 m: the line rides the land, not every bump of the relief
 const line = (pts, mat, order) => { const g = new LineGeometry(); g.setPositions(pts); const l = new Line2(g, mat); l.renderOrder = order; l.frustumCulled = false; return l; };
-const parcelG = new THREE.Group(), fillM = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.14, depthTest: false, depthWrite: false, fog: false }), fillSel = fillM.clone(); fillSel.color.set(0xffd9a0); fillSel.opacity = 0.2;
+const parcelG = new THREE.Group(), parcelS = new THREE.Group(), fillM = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.14, depthTest: false, depthWrite: false, fog: false }), fillSel = fillM.clone(); fillSel.color.set(0xffd9a0); fillSel.opacity = 0.2;
 const AC = 4046.8564, fmtAc = m2 => (m2 / AC).toFixed(2), acGu = m2 => { const a = m2 / AC, w = Math.floor(a), g = Math.round((a - w) * 40); return g === 40 ? `${w + 1} ac 0 g` : `${w} ac ${g} g`; };
 const parcels = SITE.parcels.map(p => {
   const ring = p.ring.slice(0, -1).length >= 3 && p.ring[0][0] === p.ring.at(-1)[0] && p.ring[0][1] === p.ring.at(-1)[1] ? p.ring.slice(0, -1) : p.ring, pts = drape(ring);
-  const under = line(pts, mUnder, 1), top = line(pts, mLine, 2), sel = line(pts, mSel, 4); sel.visible = false;
+  const under = line(pts, mUnder, 1), top = line(pts, mLine, 2), ghost = line(pts, mGhost, 2), sel = line(pts, mSel, 4); sel.visible = false;
+  under.isLine = top.isLine = true;   // flag only: makes the contact-shading pass skip them (it hides Points and Lines), drawing is unchanged
   const tri = THREE.ShapeUtils.triangulateShape(ring.map(([x, z]) => new THREE.Vector2(x, z)), []).flat(), fg = new THREE.BufferGeometry(), cy = groundY(...p.at);
   fg.setAttribute("position", new THREE.Float32BufferAttribute(ring.flatMap(([x, z]) => [x, groundY(x, z) + 0.5, z]), 3)); fg.setIndex(tri);
-  const fill = new THREE.Mesh(fg, fillM); fill.visible = false; fill.renderOrder = 0; fill.frustumCulled = false; parcelG.add(fill, under, top, sel);
+  const fill = new THREE.Mesh(fg, fillM); fill.visible = false; fill.renderOrder = 0; fill.frustumCulled = false; parcelG.add(fill, ghost, sel); parcelS.add(under, top);
   return { ...p, ring, fill, sel, pos: new THREE.Vector3(p.at[0], cy + 2, p.at[1]) };
 });
-overlay.add(parcelG);
+overlay.add(parcelG); scene.add(parcelS);
 const inRing = (x, z, r) => { let c = false; for (let i = 0, j = r.length - 1; i < r.length; j = i++) if ((r[i][1] > z) !== (r[j][1] > z) && x < (r[j][0] - r[i][0]) * (z - r[i][1]) / (r[j][1] - r[i][1]) + r[i][0]) c = !c; return c; };
 
 // ---- labels (HTML, so type stays crisp): parcels and places, hidden when they would collide
 const labEl = $("labels"), labs = [];
 function addLabel(cls, html, pos, prio) { const el = document.createElement("div"); el.className = "lab " + cls; el.innerHTML = html; labEl.appendChild(el); const l = { el, pos, prio, cls, w: 0, h: 0 }; labs.push(l); return l; }
-parcels.forEach(p => p.lab = addLabel("p", `PARCEL ${p.id}<small>${fmtAc(p.m2)} ac</small>`, p.pos, 1));
-SITE.pois.forEach(o => addLabel("poi", o.name, new THREE.Vector3(o.at[0], groundY(...o.at) + 9, o.at[1]), 2));
+parcels.forEach(p => { p.lab = addLabel("p", `PARCEL ${p.id}<small>${fmtAc(p.m2)} ac</small>`, p.pos, 1); p.lab.size = Math.sqrt(p.m2) * 0.8; });
+SITE.pois.forEach(o => { addLabel("poi", o.name, new THREE.Vector3(o.at[0], groundY(...o.at) + 9, o.at[1]), 2).size = 150; });   // places: shown until the site is small on screen
 let showLabels = true; const _v = new THREE.Vector3();
-function layoutLabels() { const placed = [], dist = camera.position.distanceTo(controls.target);
+let lastLay = 0;
+function layoutLabels(force) { const tn = performance.now(); if (!force && tn - lastLay < 33) { pendingFinal = true; return; } lastLay = tn; const placed = [], dist = camera.position.distanceTo(controls.target);
   for (const l of [...labs].sort((a, b) => a.prio - b.prio)) { _v.copy(l.pos).project(camera); const x = (_v.x + 1) / 2 * innerWidth, y = (1 - _v.y) / 2 * innerHeight;
-    let ok = (showLabels || l.cls === "m") && _v.z < 1 && x > -40 && x < innerWidth + 40 && y > -20 && y < innerHeight + 20 && !(l.cls === "p" && dist > 1300);
+    const dl = camera.position.distanceTo(l.pos), span = l.size ? l.size * pxPerM(dl) : 1e9;
+    let ok = (showLabels || l.cls === "m") && span > l.w * 1.25 && _v.z < 1 && x > -40 && x < innerWidth + 40 && y > -20 && y < innerHeight + 20;
     if (!l.w) { l.w = l.el.offsetWidth + 10; l.h = l.el.offsetHeight + 6; }
     if (ok && l.cls !== "m") { for (const r of placed) if (Math.abs(r.x - x) < (r.w + l.w) / 2 && Math.abs(r.y - y) < (r.h + l.h) / 2) { ok = false; break; } }
-    if (ok) { placed.push({ x, y, w: l.w, h: l.h }); l.el.style.transform = `translate(-50%,-50%) translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`; } l.el.style.opacity = ok ? 1 : 0; } }
+    if (ok) { placed.push({ x, y, w: l.w, h: l.h }); const sc = l.cls === "m" ? 1 : THREE.MathUtils.clamp(Math.pow(520 / dl, 0.35), 0.82, 1.3); const tf = `translate(-50%,-50%) translate(${x.toFixed(1)}px,${y.toFixed(1)}px) scale(${sc.toFixed(2)})`; if (tf !== l.tf) l.el.style.transform = l.tf = tf; } if (ok !== l.ok) { l.ok = ok; l.el.style.opacity = ok ? 1 : 0; } } }
 
 // ---- picking on the relief without ray-casting a million triangles: step the ray onto the height field
 const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
@@ -254,7 +261,7 @@ function flyTo(pos, tgt, ms = 1700) { stopOrbit(); tween = { p0: camera.position
 const views = { oblique: [[-250, 300, 520], [0, 0, 20]], top: [[0, 900, 1], [0, 0, 0]], low: [[260, 120, 340], [-10, 0, 30]] };
 function go(v, ms) { const [p, t] = views[v], k = portrait() ? 1.7 : 1; flyTo(new THREE.Vector3(CX + p[0] * k, p[1] * k, CZ + p[2] * k), new THREE.Vector3(CX + t[0], t[1], CZ + t[2]), ms); }
 const orbitBtn = document.querySelector('[data-a="orbit"]');
-function startOrbit() { controls.autoRotate = true; controls.autoRotateSpeed = 0.45; orbitBtn.classList.add("on"); } function stopOrbit() { controls.autoRotate = false; orbitBtn.classList.remove("on"); }
+let orbitT = 0; function startOrbit() { clearTimeout(orbitT); orbitT = setTimeout(stopOrbit, 40000); controls.autoRotate = true; controls.autoRotateSpeed = 0.45; orbitBtn.classList.add("on"); } function stopOrbit() { clearTimeout(orbitT); controls.autoRotate = false; orbitBtn.classList.remove("on"); }
 function setSun(deg) { const r = THREE.MathUtils.degToRad(deg); sun.position.set(CX + Math.cos(r) * 300, 250, CZ + Math.sin(r) * 300); sun.target.position.set(CX, 0, CZ); reshadow(); }
 
 // ---- parcel card and list
@@ -298,7 +305,7 @@ $("bar").onclick = e => { const b = e.target.closest("button"); if (!b) return; 
   else if (a === "layers") { const p = $("pop"); p.style.display = p.style.display === "block" ? "none" : "block"; b.classList.toggle("on", p.style.display === "block"); }
   else if (a === "share") { const r = n => Math.round(n), u = new URL(location.href); u.search = ""; u.searchParams.set("cam", [camera.position.x - CX, camera.position.y, camera.position.z - CZ, controls.target.x - CX, controls.target.y, controls.target.z - CZ].map(r).join(",")); if (selP) u.searchParams.set("parcel", selP.id);
     (navigator.clipboard?.writeText(u.href) || Promise.reject()).then(() => toast("Link to this view copied"), () => prompt("Copy this link", u.href)); } dirty = true; };
-$("pop").addEventListener("change", e => { const l = e.target.dataset.l; if (!l) return; const on = e.target.checked; if (l === "parcels") parcelG.visible = on; else if (l === "labels") showLabels = on; else if (l === "trees") { treeG.visible = on; reshadow(); } else if (l === "structures") { bld.visible = on; reshadow(); } dirty = true; });
+$("pop").addEventListener("change", e => { const l = e.target.dataset.l; if (!l) return; const on = e.target.checked; if (l === "parcels") parcelG.visible = parcelS.visible = on; else if (l === "labels") showLabels = on; else if (l === "trees") { treeG.visible = on; reshadow(); } else if (l === "structures") { bld.visible = on; reshadow(); } dirty = true; });
 $("sun").addEventListener("input", e => setSun(+e.target.value));
 
 // ---- post: soft contact shading where trees and buildings meet the ground (desktop), then tone mapping
@@ -313,11 +320,16 @@ addEventListener("resize", resize); addEventListener("orientationchange", () => 
 // The page steps down by itself when frames take too long (never back up, so it cannot flicker between levels). ?q=0|1|2 pins a level.
 const DPR = Math.min(devicePixelRatio, 2); let level = q.has("q") ? +q.get("q") : (lite ? 0 : 2), curRes = 0, lastFrame = 0, lastMove = 0, pendingFinal = false; const dts = [];
 function setRes(r) { if (r === curRes) return; curRes = r; renderer.setPixelRatio(r); composer?.setPixelRatio(r); }
-function draw(final) {
+const pxPerM = d => innerHeight / (2 * d * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)));
+function scaleLines() { const d = camera.position.distanceTo(controls.target), w = THREE.MathUtils.clamp(0.55 * pxPerM(d), 0.9, 2.3), far = THREE.MathUtils.clamp((d - 1500) / 2500, 0, 1);
+  mLine.linewidth = w; mGhost.linewidth = w * 0.8; mLine.opacity = 0.95 - 0.3 * far; mUnder.linewidth = w * 2.4 + 1; mUnder.opacity = 0.3 - 0.18 * far; mSel.linewidth = w * 1.5 + 0.8; mMeas.linewidth = w * 1.3 + 0.8; }
+function draw(final) { scaleLines();
   const post = composer && (level === 2 || (final && level >= 0 && !lite)); setRes(level === 2 || final ? DPR : Math.min(DPR, level === 1 ? 1.25 : 1)); if (ao) ao.enabled = level === 2 || final;
   if (post) composer.render(); else renderer.render(scene, camera);
-  renderer.autoClear = false; renderer.clearDepth(); renderer.render(overlay, camera); renderer.autoClear = true; layoutLabels();
+  renderer.autoClear = false; renderer.clearDepth(); renderer.render(overlay, camera); renderer.autoClear = true; layoutLabels(final);
 }
+
+document.addEventListener("visibilitychange", () => { if (document.hidden) stopOrbit(); });
 
 // ---- start: glide in from high up, then circle slowly until the first touch
 setSun(120);
