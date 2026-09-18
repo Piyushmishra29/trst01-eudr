@@ -85,7 +85,7 @@ const [SW, SH] = AL.sat_size, SPX = AL.sat_px_m, [DW, DH] = AL.drone_size, A = A
 // drone pixel (u,v) -> world metres (x east, z south), origin = centre of the satellite block
 const SEAM = await (await fetch("seam.json")).json();
 const DPX = Math.hypot(A[0][0], A[1][0]) * SPX;   // metres per drone px
-const TREES = (await (await fetch("trees.json")).json()).trees;       // [cx, cy, rx, ry] in drone px + relative height (DeepForest + canopy peaks)
+const TREES = (await (await fetch("trees.json")).json()).trees;       // [cx, cy, rx, ry] in drone px, relative height, palm flag (DeepForest + canopy peaks)
 const BLD = (await (await fetch("buildings.json")).json()).buildings;   // roof outlines in drone px (SAM 2.1), h = relative height   // correction grid (satellite px) so roads meet the satellite cleanly
 function seamAt(u, v) {   // bilinear sample of the grid at drone pixel (u, v)
   const fx = Math.min(Math.max(u / DW, 0), 1) * (SEAM.gx - 1), fy = Math.min(Math.max(v / DH, 0), 1) * (SEAM.gy - 1);
@@ -140,27 +140,41 @@ function addOutline() {   // 1 px yellow line around the mapped area, sharp at a
   outline = new THREE.LineLoop(g, new THREE.LineBasicMaterial({ color: 0xffd23f, fog: false, depthTest: false, transparent: true, opacity: 0.9 }));
   outline.renderOrder = 10; scene.add(outline);
 }
-// Buildings: the terrain is flat under them; each one is an extruded box with the photo on the roof and plain walls
+// Buildings: the terrain is flat under them. Each is extruded: photo on the roof, plain walls; plain rectangles get a ridge (gable) roof.
 let hw = 0, hh = 0, bld = null;
 function addBuildings(tex) {
   if (bld) { scene.remove(bld); bld.traverse(o => { o.geometry?.dispose(); o.material?.dispose(); }); }
   bld = new THREE.Group();
   const roofM = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.8, side: THREE.DoubleSide }), wallM = new THREE.MeshStandardMaterial({ color: 0xd8d4cb, roughness: 0.95, side: THREE.DoubleSide });   // double-sided: outline direction varies
   for (const b of BLD) {
-    const P = b.poly, n = P.length, w = P.map(([u, v]) => toWorld(u, v));
-    const tris = THREE.ShapeUtils.triangulateShape(P.map(([u, v]) => new THREE.Vector2(u, v)), []);
+    let P = b.poly.map(q => q.slice()), n = P.length, ridge = 0;
+    const R = [];                                        // roof points: [u, v, isRidge]
+    let roofIdx, gableIdx = [];
+    if (b.roof === "gable") {
+      const w = P.map(([u, v]) => toWorld(u, v)), d = (i, j) => Math.hypot(w[i][0] - w[j][0], w[i][1] - w[j][1]);
+      if (d(0, 1) < d(1, 2)) P = [P[1], P[2], P[3], P[0]];            // make edge 0-1 the long side
+      const mid = (i, j) => [(P[i][0] + P[j][0]) / 2, (P[i][1] + P[j][1]) / 2];
+      P.forEach(q => R.push([q[0], q[1], 0])); R.push([...mid(1, 2), 1], [...mid(3, 0), 1]);
+      roofIdx = [0, 1, 4, 0, 4, 5, 2, 3, 5, 2, 5, 4]; gableIdx = [[1, 2, 4], [3, 0, 5]];
+      const ww = P.map(([u, v]) => toWorld(u, v)); ridge = 0.2 * Math.hypot(ww[1][0] - ww[2][0], ww[1][1] - ww[2][1]);   // about a 22 degree pitch
+    } else {
+      P.forEach(q => R.push([q[0], q[1], 0]));
+      roofIdx = THREE.ShapeUtils.triangulateShape(P.map(([u, v]) => new THREE.Vector2(u, v)), []).flat();
+    }
+    const rw = R.map(([u, v]) => toWorld(u, v));
     const roof = new THREE.BufferGeometry();
-    roof.setAttribute("position", new THREE.BufferAttribute(new Float32Array(n * 3), 3));
-    roof.setAttribute("uv", new THREE.BufferAttribute(new Float32Array(P.flatMap(([u, v]) => [u / DW, 1 - v / DH])), 2));
-    roof.setIndex(tris.flat());
+    roof.setAttribute("position", new THREE.BufferAttribute(new Float32Array(R.length * 3), 3));
+    roof.setAttribute("uv", new THREE.BufferAttribute(new Float32Array(R.flatMap(([u, v]) => [u / DW, 1 - v / DH])), 2));
+    roof.setIndex(roofIdx);
     const wall = new THREE.BufferGeometry();
-    wall.setAttribute("position", new THREE.BufferAttribute(new Float32Array(n * 12), 3));
+    wall.setAttribute("position", new THREE.BufferAttribute(new Float32Array((n * 4 + gableIdx.length * 3) * 3), 3));
     const idx = []; for (let i = 0; i < n; i++) { const o = i * 4; idx.push(o, o + 1, o + 2, o + 2, o + 1, o + 3); }
+    gableIdx.forEach((_, k) => idx.push(n * 4 + k * 3, n * 4 + k * 3 + 1, n * 4 + k * 3 + 2));
     wall.setIndex(idx);
     const cu = P.reduce((a, q) => a + q[0], 0) / n, cv = P.reduce((a, q) => a + q[1], 0) / n;
     const rm = new THREE.Mesh(roof, roofM), wm = new THREE.Mesh(wall, wallM);
     rm.castShadow = wm.castShadow = rm.receiveShadow = wm.receiveShadow = true;
-    rm.userData = wm.userData = { w, h: b.h, gi: Math.min(hh - 1, Math.round(cv / DH * (hh - 1))) * hw + Math.min(hw - 1, Math.round(cu / DW * (hw - 1))) };
+    rm.userData = { n, rw, R, ridge, gableIdx, h: b.h, gi: Math.min(hh - 1, Math.round(cv / DH * (hh - 1))) * hw + Math.min(hw - 1, Math.round(cu / DW * (hw - 1))) };
     bld.add(rm, wm);
   }
   scene.add(bld);
@@ -168,55 +182,91 @@ function addBuildings(tex) {
 function raiseBuildings() {
   if (!bld) return;
   for (let k = 0; k < bld.children.length; k += 2) {
-    const rm = bld.children[k], wm = bld.children[k + 1], { w, h, gi } = rm.userData;
-    const y0 = hts[gi] * ex, y1 = y0 + Math.max((0.25 + 0.6 * h) * ex, 0.05), rp = rm.geometry.attributes.position, wp = wm.geometry.attributes.position;
-    w.forEach(([x, z], i) => {
-      const [x2, z2] = w[(i + 1) % w.length];
-      rp.setXYZ(i, x, y1, z);
+    const rm = bld.children[k], wm = bld.children[k + 1], { n, rw, R, ridge, gableIdx, h, gi } = rm.userData;
+    const y0 = hts[gi] * ex, y1 = y0 + Math.max((0.25 + 0.6 * h) * ex, 0.05), yr = y1 + ridge * Math.min(1, ex / 10);
+    const rp = rm.geometry.attributes.position, wp = wm.geometry.attributes.position, Y = i => R[i][2] ? yr : y1;
+    rw.forEach(([x, z], i) => rp.setXYZ(i, x, Y(i), z));
+    for (let i = 0; i < n; i++) {
+      const [x, z] = rw[i], [x2, z2] = rw[(i + 1) % n];
       wp.setXYZ(i * 4, x, y1, z); wp.setXYZ(i * 4 + 1, x2, y1, z2); wp.setXYZ(i * 4 + 2, x, y0 - 1, z); wp.setXYZ(i * 4 + 3, x2, y0 - 1, z2);
-    });
+    }
+    gableIdx.forEach((tri, t) => tri.forEach((i, j) => wp.setXYZ(n * 4 + t * 3 + j, rw[i][0], Y(i), rw[i][1])));
     rp.needsUpdate = wp.needsUpdate = true; rm.geometry.computeVertexNormals(); wm.geometry.computeVertexNormals();
     rm.geometry.computeBoundingSphere(); wm.geometry.computeBoundingSphere();
   }
 }
-// Trees: one lumpy ellipsoid crown per detected tree, textured by the photo projected straight down, on a short trunk
-let treeMesh = null, trunkMesh = null, tInfo = null;
+// Trees: crowns textured by the photo projected straight down, on trunks. Big trees are a cluster of lobes, small ones a single lobe,
+// coconut palms a tall trunk with drooping fronds. Undersides are darkened a little so crowns read as solid.
+let treeMesh = null, trunkMesh = null, palmMesh = null, tInfo = null;
 const gAt = (u, v) => hts[Math.min(hh - 1, Math.max(0, Math.round(v / DH * (hh - 1)))) * hw + Math.min(hw - 1, Math.max(0, Math.round(u / DW * (hw - 1))))];
+const rnd = (a, b, c) => { const x = Math.sin(a * 127.1 + b * 311.7 + c * 74.7) * 43758.5453; return x - Math.floor(x); };
 function addTrees(tex) {
-  for (const m of [treeMesh, trunkMesh]) if (m) { scene.remove(m); m.geometry.dispose(); m.material.dispose(); }
-  const ico = new THREE.IcosahedronGeometry(1, hd ? 2 : 1), ip = ico.attributes.position, nv = ip.count, T = TREES.length;   // non-indexed: faceted, reads as foliage
-  const pos = new Float32Array(T * nv * 3), uv = new Float32Array(T * nv * 2), yu = new Float32Array(T * nv);
-  const rnd = (a, b, c) => { const x = Math.sin(a * 127.1 + b * 311.7 + c * 74.7) * 43758.5453; return x - Math.floor(x); };
-  TREES.forEach(([cx, cy, rx, ry, ht], t) => {
-    for (let i = 0; i < nv; i++) {
-      const k = 0.86 + 0.28 * rnd(Math.round(ip.getX(i) * 50) + t, Math.round(ip.getY(i) * 50), Math.round(ip.getZ(i) * 50));   // same bump for the shared corners of neighbouring faces
-      const sx = ip.getX(i) * k, sy = ip.getY(i) * k, sz = ip.getZ(i) * k, o = t * nv + i;
+  for (const m of [treeMesh, trunkMesh, palmMesh]) if (m) { scene.remove(m); m.geometry.dispose(); m.material.dispose(); }
+  const T = TREES.length, icoBig = new THREE.IcosahedronGeometry(1, hd ? 2 : 1).attributes.position, icoSm = new THREE.IcosahedronGeometry(1, 1).attributes.position;
+  const lobes = [];                                     // [tree, ox, oz, scale, yOffset, ico]
+  TREES.forEach(([cx, cy, rx, ry, ht, palm], t) => {
+    if (palm) return;
+    if (hd && (rx + ry) / 2 > 26) {                     // wider than about 6.5 m: a main lobe and four around it
+      lobes.push([t, 0, 0, 0.74, 0.22, icoSm]);
+      for (let k = 0; k < 4; k++) { const a = k * 1.571 + rnd(t, k, 1) * 1.2, o = 0.42 + 0.1 * rnd(t, k, 2); lobes.push([t, Math.cos(a) * o, Math.sin(a) * o, 0.5 + 0.12 * rnd(t, k, 3), -0.28 + 0.2 * rnd(t, k, 4), icoSm]); }
+    } else lobes.push([t, 0, 0, 1, 0, icoBig]);
+  });
+  const total = lobes.reduce((a, l) => a + l[5].count, 0);
+  const pos = new Float32Array(total * 3), uv = new Float32Array(total * 2), col = new Float32Array(total * 3), yu = new Float32Array(total), ti = new Uint16Array(total);
+  let o = 0;
+  lobes.forEach(([t, ox, oz, sc, yo, ip], li) => {
+    const [cx, cy, rx, ry] = TREES[t];
+    for (let i = 0; i < ip.count; i++, o++) {
+      const k = 0.86 + 0.28 * rnd(Math.round(ip.getX(i) * 50) + li, Math.round(ip.getY(i) * 50), Math.round(ip.getZ(i) * 50));   // same bump for the shared corners of neighbouring faces
+      const sx = ox + ip.getX(i) * k * sc, sy = yo + ip.getY(i) * k * sc, sz = oz + ip.getZ(i) * k * sc;
       const [x, z] = toWorld(cx + sx * rx, cy + sz * ry);
-      pos[o * 3] = x; pos[o * 3 + 2] = z; yu[o] = sy;
-      uv[o * 2] = (cx + sx * rx * 0.8) / DW; uv[o * 2 + 1] = 1 - (cy + sz * ry * 0.8) / DH;      // sample a little inside the crown so the sides stay leaf-coloured
+      pos[o * 3] = x; pos[o * 3 + 2] = z; yu[o] = sy; ti[o] = t;
+      uv[o * 2] = (cx + sx * rx * 0.62) / DW; uv[o * 2 + 1] = 1 - (cy + sz * ry * 0.62) / DH;      // sample a little inside the crown so the sides stay leaf-coloured
+      const c = 0.5 + 0.5 * Math.min(1, Math.max(0, (sy + 1) / 1.6)); col[o * 3] = col[o * 3 + 1] = col[o * 3 + 2] = c;
     }
   });
   const g = new THREE.BufferGeometry();
-  g.setAttribute("position", new THREE.BufferAttribute(pos, 3)); g.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
-  treeMesh = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: tex, roughness: 1, emissive: 0x0b1606 }));   // a touch of fill light: crowns were photographed from above, their sides would go too dark
+  g.setAttribute("position", new THREE.BufferAttribute(pos, 3)); g.setAttribute("uv", new THREE.BufferAttribute(uv, 2)); g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+  treeMesh = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: tex, roughness: 1, vertexColors: true, emissive: 0x0b1606 }));   // a touch of fill light: crowns were photographed from above
   treeMesh.castShadow = treeMesh.receiveShadow = true; treeMesh.frustumCulled = false;
-  trunkMesh = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.7, 1, 1, 5).translate(0, 0.5, 0), new THREE.MeshStandardMaterial({ color: 0x5b4632, roughness: 1 }), T);
+  trunkMesh = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.7, 1, 1, 6).translate(0, 0.5, 0), new THREE.MeshStandardMaterial({ color: 0x5b4632, roughness: 1 }), T);
   trunkMesh.castShadow = true; trunkMesh.frustumCulled = false;
-  tInfo = { nv, yu };
-  scene.add(treeMesh, trunkMesh);
+  // palms: 13 fronds each, a tapered strip that rises a little then droops
+  const palms = TREES.map((t, i) => [t, i]).filter(([t]) => t[5]), F = 13, S = 5, pv = [], pc = [], pidx = [], pyr = [], pti = [];
+  palms.forEach(([[cx, cy, rx, ry], t]) => {
+    const [x0, z0] = toWorld(cx, cy), L = (rx + ry) / 2 * DPX * 1.05;
+    for (let f = 0; f < F; f++) {
+      const a = f / F * 6.2832 + rnd(t, f, 5) * 0.4, dx = Math.cos(a), dz = Math.sin(a), lift = 0.25 + 0.3 * rnd(t, f, 6), base = pv.length / 3, shade = 0.75 + 0.35 * rnd(t, f, 7);
+      for (let k = 0; k <= S; k++) {
+        const q = k / S, r = q * L, wdt = 0.16 * L * Math.sin(Math.PI * Math.min(1, q * 0.9 + 0.1)), y = L * (lift * q - 0.75 * q * q);
+        for (const sgn of [-1, 1]) { pv.push(x0 + dx * r - dz * wdt * sgn, 0, z0 + dz * r + dx * wdt * sgn); pyr.push(y); pti.push(t); pc.push(0.30 * shade, 0.46 * shade, 0.20 * shade); }
+        if (k < S) { const v = base + k * 2; pidx.push(v, v + 1, v + 2, v + 2, v + 1, v + 3); }
+      }
+    }
+  });
+  const pg = new THREE.BufferGeometry();
+  pg.setAttribute("position", new THREE.BufferAttribute(new Float32Array(pv), 3)); pg.setAttribute("color", new THREE.BufferAttribute(new Float32Array(pc), 3)); pg.setIndex(pidx);
+  palmMesh = new THREE.Mesh(pg, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, side: THREE.DoubleSide }));
+  palmMesh.castShadow = true; palmMesh.frustumCulled = false;
+  tInfo = { yu, ti, pyr, pti };
+  scene.add(treeMesh, trunkMesh, palmMesh);
 }
 const _m = new THREE.Matrix4();
 function raiseTrees() {
   if (!treeMesh) return;
-  const { nv, yu } = tInfo, pos = treeMesh.geometry.attributes.position;
-  TREES.forEach(([cx, cy, rx, ry, ht], t) => {
-    const rw = (rx + ry) / 2 * DPX * Math.min(1, ex / 10);                                 // crown radius in metres
-    const y0 = gAt(cx, cy) * ex, H = Math.max(ht * ex, 1.5 * rw), half = Math.min(0.38 * H, Math.max(0.35 * H, 0.75 * rw)), low = H - 2 * half;   // crowns stay round, never pancakes
-    for (let i = 0; i < nv; i++) pos.setY(t * nv + i, y0 + low + half * (1 + yu[t * nv + i]));
-    const [x, z] = toWorld(cx, cy), r = Math.max(0.12, Math.min(0.45, (rx + ry) * 0.0012 * ex / 10));
-    trunkMesh.setMatrixAt(t, _m.makeScale(r, Math.max(low + half * 0.6, 0.01), r).setPosition(x, y0 - 0.3, z));
+  const { yu, ti, pyr, pti } = tInfo, pos = treeMesh.geometry.attributes.position, pp = palmMesh.geometry.attributes.position, T = TREES.length, k = Math.min(1, ex / 10);
+  const y0 = new Float32Array(T), low = new Float32Array(T), half = new Float32Array(T);
+  TREES.forEach(([cx, cy, rx, ry, ht, palm], t) => {
+    const rw = (rx + ry) / 2 * DPX * k;                                  // crown radius in metres
+    y0[t] = gAt(cx, cy) * ex;
+    if (palm) { low[t] = Math.max(ht * ex * 1.6, 2.2 * rw); half[t] = 0; }   // palms: the fronds sit on top of a tall trunk
+    else { const H = Math.max(ht * ex, 1.5 * rw); half[t] = Math.min(0.38 * H, Math.max(0.35 * H, 0.75 * rw)); low[t] = H - 2 * half[t]; }   // crowns stay round, never pancakes
+    const [x, z] = toWorld(cx, cy), r = palm ? 0.22 * k + 0.02 : Math.max(0.12, Math.min(0.45, (rx + ry) * 0.0012 * k));
+    trunkMesh.setMatrixAt(t, _m.makeScale(r, Math.max(palm ? low[t] + 0.3 : low[t] + half[t] * 0.6, 0.01), r).setPosition(x, y0[t] - 0.3, z));
   });
-  pos.needsUpdate = true; treeMesh.geometry.computeVertexNormals(); trunkMesh.instanceMatrix.needsUpdate = true;
+  for (let i = 0; i < yu.length; i++) { const t = ti[i]; pos.setY(i, y0[t] + low[t] + half[t] * (1 + yu[i])); }
+  for (let i = 0; i < pyr.length; i++) { const t = pti[i]; pp.setY(i, y0[t] + low[t] + pyr[i] * k); }
+  pos.needsUpdate = pp.needsUpdate = true; treeMesh.geometry.computeVertexNormals(); palmMesh.geometry.computeVertexNormals(); trunkMesh.instanceMatrix.needsUpdate = true;
 }
 function applyHeights() {
   raiseBuildings(); raiseTrees();
@@ -246,6 +296,7 @@ try {
 }
 setSun(120);
 go(q.get("view") || "oblique");
+if (q.get("cam")) { const c = q.get("cam").split(",").map(Number); camera.position.set(CX + c[0], c[1], CZ + c[2]); controls.target.set(CX + c[3], c[4], CZ + c[5]); controls.update(); }   // ?cam=x,y,z,tx,ty,tz in metres from the centre: for close-up links
 
 let pending = false;
 document.getElementById("ex").addEventListener("input", e => {

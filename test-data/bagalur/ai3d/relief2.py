@@ -46,8 +46,23 @@ for cx, cy, rx, ry in crowns:
     yy, xx = np.mgrid[y0:y1, x0:x1]; q = ((xx - cx) / rx) ** 2 + ((yy - cy) / ry) ** 2
     hd = np.percentile(obj[y0:y1, x0:x1][q < 1], 85) if (q < 1).any() else 0
     ht = float(np.clip(0.55 * hd + 0.45 * 0.085 * (rx + ry) * M * 1.15, 0.15, 1.15))
-    out.append([round(float(v), 1) for v in (cx * 2, cy * 2, rx * 2, ry * 2)] + [round(ht, 3)])      # drone px at 4032, relative height
+    out.append([round(float(v), 1) for v in (cx * 2, cy * 2, rx * 2, ry * 2)] + [round(ht, 3)])      # drone px at 4032, relative height, (palm flag added below)
     cv2.ellipse(tmask, (int(cx), int(cy)), (int(rx), int(ry)), 0, 0, 360, 1, -1)
+# coconut palms: fronds run outward from the centre, so image edges point around the crown, not across it
+full = cv2.imread("web/tex_hd.jpg"); gray = cv2.GaussianBlur(cv2.cvtColor(full, cv2.COLOR_BGR2GRAY).astype(np.float32), (0, 0), 1.2)
+sx, sy = cv2.Sobel(gray, cv2.CV_32F, 1, 0), cv2.Sobel(gray, cv2.CV_32F, 0, 1); tiles = []
+for t in out:
+    cx, cy, R = int(t[0]), int(t[1]), int(max(t[2], t[3]) * 1.3); t.append(0)
+    if R < 16 or cx - R - 5 < 0 or cy - R - 5 < 0 or cx + R + 5 >= 4032 or cy + R + 5 >= 3024: continue
+    yy, xx = np.mgrid[-R:R, -R:R].astype(np.float32); rr = np.hypot(xx, yy) + 1e-3; ok = (rr > 0.25 * R) & (rr < R); best = 9
+    for ox in (-4, 0, 4):
+        for oy in (-4, 0, 4):
+            sl = (slice(cy + oy - R, cy + oy + R), slice(cx + ox - R, cx + ox + R)); ax, ay = sx[sl], sy[sl]
+            best = min(best, float((np.abs(ax * xx + ay * yy) / rr)[ok].sum() / np.hypot(ax, ay)[ok].sum()))
+    if best < 0.56 and gray[cy - R:cy + R, cx - R:cx + R][ok].std() > 22 and exg[(cy - R // 3) // 2:(cy + R // 3) // 2 + 1, (cx - R // 3) // 2:(cx + R // 3) // 2 + 1].mean() > 0.06:   # green at the heart (rocks are not)
+        t[5] = 1; tiles.append(cv2.resize(full[cy - R:cy + R, cx - R:cx + R], (100, 100)))
+print(len(tiles), "palms")
+if tiles: cv2.imwrite("work/palms.jpg", np.hstack(tiles[:16]))
 json.dump(dict(size=[4032, 3024], trees=out), open("web/trees.json", "w"), separators=(",", ":"))
 # 4) everything else: low crops keep a little texture, bare ground/shadows go flat, buildings cut out
 low = cv2.GaussianBlur(obj * veg, (0, 0), 2) * 0.35 + cv2.GaussianBlur(obj * (1 - veg), (0, 0), 4) * 0.12

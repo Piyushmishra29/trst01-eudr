@@ -95,11 +95,15 @@ The photo sits at its true position inside a 2 × 1.5 km block of Esri satellite
 
 **Trees and buildings are real 3D objects, found by open-source models** (all run locally, no paid API):
 
-- **Trees:** DeepForest (tree-crown detector trained on 10 cm aerial imagery, the same scale as this photo) finds the separate trees; dense blocks and clumps get one crown per bright canopy peak. 854 trees in total (`trees.py`, `relief2.py`). The viewer builds each as a rounded crown on a trunk, coloured by the photo projected straight down.
-- **Buildings:** SAM 2.1 segments the photo; segments that are raised in the AI depth, not vegetation and compact are kept as roofs, plus a few clicked by hand where it missed (`sam_masks.py`, `sam_points.py`, `buildings.py`). 39 footprints, extruded with the photo on the roof and plain vertical walls.
+- **Trees:** DeepForest (tree-crown detector trained on 10 cm aerial imagery, the same scale as this photo) finds the separate trees; dense blocks and clumps get one crown per bright canopy peak. 854 trees in total (`trees.py`, `relief2.py`). The viewer builds each on a trunk with a crown coloured by the photo projected straight down: big trees are a cluster of lobes, small ones a single lobe, undersides shaded. Coconut palms are picked out by their radial fronds (image edges run around the crown instead of across it) and get a tall trunk with drooping fronds.
+- **Buildings:** SAM 2.1 segments the photo; segments that are raised in the AI depth, not vegetation and compact are kept as roofs, plus a few clicked by hand where it missed (`sam_masks.py`, `sam_points.py`, `buildings.py`). 39 footprints, extruded with the photo on the roof and plain vertical walls. The 17 plain rectangles of house or shed size get a ridge (gable) roof; greenhouses stay flat.
 - The ground keeps only a gentle relief from Depth Anything V2.
 
 <img src="docs/img/ai3d_trees_buildings.jpg" width="820">
+
+<img src="docs/img/ai3d_closeup.jpg" width="820">
+
+Close-up links: add `?cam=x,y,z,tx,ty,tz` (camera and target, metres from the centre of the photo).
 
 <img src="docs/img/ai3d_detections.jpg" width="820">
 

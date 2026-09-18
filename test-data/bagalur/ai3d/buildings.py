@@ -57,7 +57,9 @@ for i in range(1, n):
     poly = cv2.boxPoints(rect) if a / (rect[1][0] * rect[1][1]) > 0.88 else cv2.approxPolyDP(c, 0.012 * cv2.arcLength(c, True), True).reshape(-1, 2)
     ring = (cv2.dilate(m, np.ones((81, 81), np.uint8)) > 0) & (U == 0)
     dh = float(np.median(obj[m > 0]) - np.percentile(obj[ring], 25))
-    out.append(dict(poly=[[round(float(x), 1), round(float(y), 1)] for x, y in poly], h=round(max(dh, 0.12), 3), area_m2=round(a * 0.0108, 0)))
+    short = min(rect[1]) * 0.104                                  # metres
+    gable = len(poly) == 4 and a / (rect[1][0] * rect[1][1]) > 0.88 and 3.5 < short < 22 and a * 0.0108 < 1200   # plain rectangles of house/shed size get a ridge; greenhouses stay flat
+    out.append(dict(roof="gable" if gable else "flat", poly=[[round(float(x), 1), round(float(y), 1)] for x, y in poly], h=round(max(dh, 0.12), 3), area_m2=round(a * 0.0108, 0)))
     cv2.polylines(vis, [np.int32(poly)], True, (255, 0, 255), 5)
     cv2.putText(vis, f"{len(out)-1} h{dh:.2f}", tuple(np.int32(poly).min(0)), 0, 1.4, (0, 255, 255), 3)
 print(len(out), "buildings")
