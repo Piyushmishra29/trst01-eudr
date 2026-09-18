@@ -120,7 +120,7 @@ sun.shadow.mapSize.set(lite ? 2048 : 4096, lite ? 2048 : 4096); scene.add(sun, s
 const loadImg = src => new Promise((ok, err) => { const i = new Image(); i.onload = () => ok(i); i.onerror = err; i.src = src; });
 const J = async u => (await fetch(u)).json(), bmpLoader = new THREE.ImageBitmapLoader().setOptions({ imageOrientation: "flipY", premultiplyAlpha: "none" });
 const texLoader = { loadAsync: async u => { const t = new THREE.Texture(await bmpLoader.loadAsync(u)); t.flipY = false; t.needsUpdate = true; return t; } };   // createImageBitmap decodes in a worker thread: no long main-thread stall for the 12 to 34 MP photos
-const [AL, SEAM, FJ, SJ, SITE] = await Promise.all([J("a/align.json"), J("a/seam.json"), J("flora.json"), J("structures.json"), J("site.json")]);
+const [AL, SEAM, FJ, SJ, SITE, WIDE] = await Promise.all([J("a/align.json"), J("a/seam.json"), J("flora.json"), J("structures.json"), J("site.json"), J("wide.json").catch(() => null)]);
 const [SW, SH] = AL.sat_size, SPX = AL.sat_px_m, [DW, DH] = AL.drone_size, A = AL.A, FLORA = FJ.flora, STRUCT = SJ.structures;
 const DPX = Math.hypot(A[0][0], A[1][0]) * SPX;        // metres per photo px
 function seamAt(u, v) {
@@ -145,10 +145,15 @@ const tag = lite ? "sd" : "hd";
 $("load-t").textContent = "Loading imagery";
 const [hImg, st, tex0] = await Promise.all([loadImg("a/height_sd.png"), texLoader.loadAsync(`sat_${tag}.webp`), texLoader.loadAsync(`tex_${tag}.webp`)]);
 const maxAniso = Math.min(16, renderer.capabilities.getMaxAnisotropy()); let tex = tex0; tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = maxAniso;
+let wideTex = null;
 { // satellite, already toned to the drone photo (build_site.py) so the two read as one landscape
   st.colorSpace = THREE.SRGBColorSpace; st.anisotropy = maxAniso;
   const alpha = fadeTex((g, w, h) => { const r = g.createRadialGradient(w / 2, h / 2, h * 0.30, w / 2, h / 2, h * 0.56); r.addColorStop(0, "#fff"); r.addColorStop(1, "#000"); g.fillStyle = r; g.save(); g.translate(w / 2, h / 2); g.scale(1.25, 1); g.translate(-w / 2, -h / 2); g.fillRect(-w, -h, w * 3, h * 3); g.restore(); });
   const sat = new THREE.Mesh(new THREE.PlaneGeometry(SW * SPX, SH * SPX).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ map: st, alphaMap: alpha, transparent: true, roughness: 1, depthWrite: false })); sat.material.color.setScalar(LIFT);
+  // the 500 m overview photo (8.7 cm/px): sharp ground from the edge of the main photo out to the highway, over the satellite, soft-edged (build_site.py)
+  if (WIDE) Promise.resolve(WIDE).then(async WJ => { const [wt, wa] = await Promise.all([texLoader.loadAsync(`wide_${tag}.webp`), texLoader.loadAsync("wide_a.png")]); wt.colorSpace = THREE.SRGBColorSpace; wt.anisotropy = maxAniso;
+    const wide = new THREE.Mesh(new THREE.PlaneGeometry(WJ.x1 - WJ.x0, WJ.z1 - WJ.z0).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ map: wt, alphaMap: wa, transparent: true, roughness: 1, depthWrite: false })); wide.material.color.setScalar(LIFT);
+    wide.position.set((WJ.x0 + WJ.x1) / 2, -0.25, (WJ.z0 + WJ.z1) / 2); wide.receiveShadow = true; wide.renderOrder = -1.5; scene.add(wide); wideTex = wt; applyWide?.(); reshadow(); }).catch(() => {});
   // wide context, 16 km across at 4 m/px: the land runs on to a hazy horizon instead of stopping at the block
   const far = fadeTex((g, w, h) => { const r = g.createRadialGradient(w / 2, h / 2, h * 0.34, w / 2, h / 2, h * 0.5); r.addColorStop(0, "#fff"); r.addColorStop(1, "#000"); g.fillStyle = r; g.fillRect(0, 0, w, h); }, 512, 512);
   const ctx = new THREE.Mesh(new THREE.PlaneGeometry(16000, 16000).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x9a8f7c, alphaMap: far, transparent: true, roughness: 1, depthWrite: false }));   // earth tone until the image arrives
@@ -165,7 +170,8 @@ const ground = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: tex, al
 ground.material.color.setScalar(LIFT); ground.receiveShadow = true;   /* no castShadow: the raised border would draw a dark rim on the surroundings */ ground.renderOrder = -1; scene.add(ground);   // a touch over 1: the photo already holds its own shadows, the scene adds more
 
 // ---- structures and planting (models.js): squared-up blocks under their real roofs; leafy crowns in each tree's own colours, shrubs in the scrub, trees on the land around
-const { group: bld, roofM } = buildStructures(STRUCT, { groundY, toPhoto, DW, DH, tex }); scene.add(bld);
+const { group: bld, roofM, roofWM } = buildStructures(STRUCT, { groundY, toPhoto, DW, DH, tex, wide: WIDE }); scene.add(bld);
+var applyWide = () => { if (wideTex) { roofWM.map = wideTex; roofWM.color.setScalar(1.25); roofWM.needsUpdate = true; dirty = true; } }; applyWide();
 const treeG = buildFlora(FLORA, { groundY, lite, toPhoto, DW, DH, DPX }); scene.add(treeG);
 
 // ---- parcels: thin white boundary with a soft dark under-line, draped on the relief; fill only on hover or selection

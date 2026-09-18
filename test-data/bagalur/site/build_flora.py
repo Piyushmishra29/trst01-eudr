@@ -43,6 +43,13 @@ for bi, b in enumerate(BLD):
     for lx, lz, pw, pd in parts:
         c = np.array([cx, cz]) + ex * lx + ez * lz
         structures.append(dict(x=round(float(c[0]), 2), z=round(float(c[1]), 2), w=round(float(pw), 2), d=round(float(pd), 2), a=round(float(a), 4), h=round(h, 2), roof=b["roof"] if min(pw, pd) < 32 else "flat", g=bi, big=int(b["area_m2"] > 1500)))
+# ---------- what only the 500 m photo sees (build_wide_objects.py): full-length poultry sheds, tunnels, greenhouses. A shed the main photo cuts off at its edge is replaced by the full one.
+import os
+if os.path.exists("work/wide_structures.json"):
+    WS = json.load(open("work/wide_structures.json")); inside = lambda s, x, z, pad: abs((x - s["x"]) * np.cos(s["a"]) + (z - s["z"]) * np.sin(s["a"])) < s["w"] / 2 + pad and abs(-(x - s["x"]) * np.sin(s["a"]) + (z - s["z"]) * np.cos(s["a"])) < s["d"] / 2 + pad
+    cen = lambda s: (s["x"], s["z"]) if "x" in s else tuple(np.mean(s["ring"], 0)); n0 = len(structures)
+    structures = [s for s in structures if not any(w_["kind"] == "poultry" and inside(w_, *cen(s), 3) for w_ in WS)]; print(n0 - len(structures), "clipped sheds replaced by their full-length version;", len(WS), "structures added from the 500 m photo")
+    structures += [dict(s, g=100 + i) for i, s in enumerate(WS)]
 def ring_of(s):
     if "ring" in s: return s["ring"]
     c_, s_ = np.cos(s["a"]), np.sin(s["a"]); return [[s["x"] + c_ * i * s["w"] / 2 - s_ * j * s["d"] / 2, s["z"] + s_ * i * s["w"] / 2 + c_ * j * s["d"] / 2] for i, j in [(-1, -1), (1, -1), (1, 1), (-1, 1)]]
@@ -50,6 +57,7 @@ def ring_of(s):
 def clean_roofs(img, k):                                                        # k = px per 4032-px
     n = 0
     for s in structures:
+        if s.get("src") == "wide": continue
         pts = np.int32([[c * k for c in photo_px(*q)] for q in ring_of(s)]); x0, y0 = np.maximum(pts.min(0) - 4, 0); x1, y1 = pts.max(0) + 4
         roi = img[y0:y1, x0:x1]; mk = np.zeros(roi.shape[:2], np.uint8); cv2.fillPoly(mk, [pts - [x0, y0]], 1)
         if mk.sum() < 30: continue
@@ -121,6 +129,10 @@ pk &= inside == 0; ys, xs = np.where(pk); n_out = 0
 for x, y in zip(xs, ys):
     r = float(np.clip(2.2 + (score[y, x] - 7) * 0.16, 2.2, 5.5)); px = sat[max(y - 4, 0):y + 5, max(x - 4, 0):x + 5].reshape(-1, 3); tt = two_tones(px)
     flora.append([round((x - SW / 2) * PX, 1), round((y - SH / 2) * PX, 1), round(r, 2), round(r * float(rng.uniform(1.5, 2.1)), 2), 3, *tt]); n_out += 1
+if os.path.exists("work/wide_trees.json"):                                                  # where the 500 m photo covers the ground its trees replace the satellite guesses
+    WJ = json.load(open("work/wide.json")); va = cv2.imread("web/wide_a.png", 0); kx, kz = va.shape[1] / (WJ["x1"] - WJ["x0"]), va.shape[0] / (WJ["z1"] - WJ["z0"])
+    def covered(x, z): i, j = int((x - WJ["x0"]) * kx), int((z - WJ["z0"]) * kz); return 0 <= i < va.shape[1] and 0 <= j < va.shape[0] and va[j, i] > 128
+    n0 = len(flora); flora = [t for t in flora if not (t[4] == 3 and covered(t[0], t[1]))]; wt = [t for t in json.load(open("work/wide_trees.json")) if covered(t[0], t[1])]; flora += wt; print(n0 - len(flora) + len(wt), "satellite trees replaced by", len(wt), "trees from the 500 m photo")
 vis = sat.copy()
 for x, y in zip(xs, ys): cv2.circle(vis, (int(x), int(y)), 6, (0, 255, 255), 1)
 cv2.imwrite("work/sat_trees.jpg", cv2.resize(vis, None, fx=0.5, fy=0.5), [1, 80])

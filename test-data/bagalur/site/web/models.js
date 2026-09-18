@@ -13,9 +13,9 @@ class Geo {                                                   // flat-shaded qua
 }
 
 // ---- structures: straight walls with a plinth and soft grounding, photo roofs with eaves (pitched) or a parapet (flat), a few windows on house-sized blocks
-export function buildStructures(list, { groundY, toPhoto, DW, DH, tex }) {
-  const roof = new Geo(), wall = new Geo(), glass = new Geo(), WALL = [0.93, 0.91, 0.87], LOW = [0.70, 0.68, 0.64], PLINTH = [0.50, 0.47, 0.43], TRIM = [0.36, 0.34, 0.32], SHED = [0.80, 0.81, 0.80];
-  const uvf = v => { const [u, w] = toPhoto(v[0], v[2]); return [u / DW, 1 - w / DH]; };
+export function buildStructures(list, { groundY, toPhoto, DW, DH, tex, wide }) {
+  const roof = new Geo(), roofW = new Geo(), wall = new Geo(), glass = new Geo(), WALL = [0.93, 0.91, 0.87], LOW = [0.70, 0.68, 0.64], PLINTH = [0.50, 0.47, 0.43], TRIM = [0.36, 0.34, 0.32], SHED = [0.80, 0.81, 0.80];
+  const uvf = v => { const [u, w] = toPhoto(v[0], v[2]); return [u / DW, 1 - w / DH]; }, uvw = v => wide ? [(v[0] - wide.x0) / (wide.x1 - wide.x0), 1 - (v[2] - wide.z0) / (wide.z1 - wide.z0)] : [0, 0];   // roofs outside the main photo take their picture from the 500 m photo
   const tmp = new THREE.Color();
   for (const s of list) {
     let ring, P = null, hw, hd; const h = s.h;
@@ -25,7 +25,7 @@ export function buildStructures(list, { groundY, toPhoto, DW, DH, tex }) {
       ring = [[-hw, -hd], [hw, -hd], [hw, hd], [-hw, hd]].map(([lx, lz]) => { const q = P(lx, lz, 0); return [q[0], q[2]]; }); }
     const ys = ring.map(q => groundY(q[0], q[1])), y0 = Math.min(...ys), yb = y0 - 1.2, y1 = Math.max(...ys) + h, n = ring.length, W = (q, y) => [q[0], y, q[1]];
     const area = Math.abs(ring.reduce((t, q, k) => { const m = ring[(k + 1) % n]; return t + q[0] * m[1] - m[0] * q[1]; }, 0)) / 2, house = !s.big && area < 280, body = s.big ? SHED : WALL, gable = s.roof === "gable" && P, par = !gable && !s.big ? 0.55 : 0, yt = y1 + par;
-    const plain = null, rq = (A, B, C, D) => plain ? wall.quad(A, B, C, D, null, [plain, plain, plain, plain]) : roof.quad(A, B, C, D, uvf);
+    const fromWide = s.src === "wide", R = fromWide ? roofW : roof, uv = fromWide ? uvw : uvf, rq = (A, B, C, D) => R.quad(A, B, C, D, uv);
     ring.forEach((qa, k) => { const qb = ring[(k + 1) % n], len = Math.hypot(qb[0] - qa[0], qb[1] - qa[1]), nx = (qb[1] - qa[1]) / len, nz = -(qb[0] - qa[0]) / len, Q = (t, y, off) => [qa[0] + (qb[0] - qa[0]) * t + nx * off, y, qa[1] + (qb[1] - qa[1]) * t + nz * off];
       wall.quad(W(qa, yt), W(qb, yt), W(qa, y0 + 0.9), W(qb, y0 + 0.9), null, [body, body, body, body]);
       wall.quad(W(qa, y0 + 0.9), W(qb, y0 + 0.9), W(qa, yb), W(qb, yb), null, [body, body, LOW, LOW]);                                                       // the last 0.9 m darkens towards the ground: reads as contact shadow and splash-back
@@ -41,12 +41,13 @@ export function buildStructures(list, { groundY, toPhoto, DW, DH, tex }) {
       for (const sz of [-1, 1]) wall.quad(P(-L, sz * D, ye), P(L, sz * D, ye), P(-L, sz * D, ye - F), P(L, sz * D, ye - F), null, T4);                        // fascia: gives the roof an edge
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) wall.quad(P(sx * L, 0, yr), P(sx * L, sz * D, ye), P(sx * L, 0, yr - F), P(sx * L, sz * D, ye - F), null, T4);
     } else for (const [i, j, k] of THREE.ShapeUtils.triangulateShape(ring.map(q => new THREE.Vector2(q[0], q[1])), [])) { const T = [ring[i], ring[k], ring[j]].map(q => W(q, y1));   // wound to face up: the shadow bias follows the geometric normal
-      if (plain) wall.tri(T[0], T[1], T[2], null, plain); else roof.tri(T[0], T[1], T[2], uvf); }
+      R.tri(T[0], T[1], T[2], uv); }
   }
   const g = new THREE.Group(), roofM = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.7, side: THREE.DoubleSide }), wallM = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92, side: THREE.DoubleSide });
   const glassM = new THREE.MeshStandardMaterial({ color: 0x1d262c, roughness: 0.25, metalness: 0.1, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 });
-  roofM.color.setScalar(1.25); for (const [geo, m] of [[roof, roofM], [wall, wallM], [glass, glassM]]) { const mesh = new THREE.Mesh(geo.build(), m); mesh.castShadow = m !== glassM; mesh.receiveShadow = true; g.add(mesh); }
-  return { group: g, roofM };
+  const roofWM = new THREE.MeshStandardMaterial({ color: 0xb9b4ab, roughness: 0.7, side: THREE.DoubleSide });
+  roofM.color.setScalar(1.25); for (const [geo, m] of [[roof, roofM], [roofW, roofWM], [wall, wallM], [glass, glassM]]) { const mesh = new THREE.Mesh(geo.build(), m); mesh.castShadow = m !== glassM; mesh.receiveShadow = true; g.add(mesh); }
+  return { group: g, roofM, roofWM };
 }
 
 // ---- leaves: one small texture of overlapping leaves, used on every card

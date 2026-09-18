@@ -21,6 +21,7 @@ def focus(img, to_px, m_per_px, dim=0.6, sat=0.55):
     m = cv2.GaussianBlur(mask.astype(np.float32) / 255, (0, 0), max(1.0, 8 / m_per_px / 2))[..., None]; f = img.astype(np.float32); g = f.mean(2, keepdims=True)
     return np.clip(f * m + ((g + (f - g) * sat) * dim + 14) * (1 - m), 0, 255).astype(np.uint8)
 pois = [dict(name=n, at=world_px(u, v)) for n, u, v in [("Polyhouses", 1600, 2760), ("Packing sheds", 660, 1280), ("Farm pond", 1030, 1760), ("Mango orchard", 3400, 520), ("Areca plantation", 1600, 690), ("Solar roof", 3250, 2680)]]
+pois += [dict(name="Staff quarters", at=[-15.0, -52.0]), dict(name="Poultry sheds", at=[200.0, -8.0]), dict(name="Poultry sheds", at=[392.0, -83.0])]      # named by Piyush; world metres
 json.dump(dict(parcels=parcels, pois=pois, surveyed_m2=round(poly([world_px(*q) for q in [(0, 0), (DW, 0), (DW, DH), (0, DH)]])[0])), open("web/site.json", "w"), separators=(",", ":"))
 print(len(parcels), "parcels", sum(p["m2"] for p in parcels) / 1e4, "ha")
 im = cv2.imread("../cesium/work/DJI_0995_enh.png")                                  # enhance.py output (8064 x 6048)
@@ -72,3 +73,24 @@ if ctx is not None:
     inner = cv2.resize(sat, (500, 375), interpolation=cv2.INTER_AREA); c0 = ctx[2000 - 187:2000 + 188, 2000 - 250:2000 + 250]        # the inner block's place in the 4 m grid
     a_, b_ = lab(c0).reshape(-1, 3), lab(inner).reshape(-1, 3); ctx_l = (lab(ctx) - a_.mean(0)) * np.clip(b_.std(0) / a_.std(0), 0.8, 1.25) + b_.mean(0)      # first onto the inner block's own tone (different tile dates)
     webp("web/context.webp", focus(cv2.resize(tone(cv2.cvtColor(np.clip(ctx_l, 0, 255).astype(np.uint8), cv2.COLOR_LAB2BGR)), (3072, 3072), interpolation=cv2.INTER_AREA), lambda x, z: ((x + 8000) / 16000 * 3072, (z + 8000) / 16000 * 3072), 16000 / 3072), 72); print("context written")
+
+# ---------- wide drone layer (make_wide.py): the 500 m photo, 8.7 cm/px, under the 350 m photo and over the satellite. Same tone as the main photo, same land colour, same focus.
+import os
+if os.path.exists("work/wide_enh.png"):
+    WJ = json.load(open("work/wide.json")); wide = cv2.imread("work/wide_enh.png"); valid = cv2.imread("work/wide_valid.png", 0)
+    wide = (np.clip((wide.astype(np.float32) / 255) ** 0.8 * 0.94 + 0.05, 0, 1) * 255).astype(np.uint8); hW, wW = wide.shape[:2]; mp = WJ["m_per_px"]
+    gs = 40; gx, gz = np.meshgrid(np.arange(gs // 2, wW, gs), np.arange(gs // 2, hW, gs)); pa, pb = [], []                                   # tone: where both photos see the same ground, the wide one takes the main one's Lab mean and spread
+    small_w = cv2.blur(wide, (gs, gs)); small_d = cv2.blur(cv2.resize(im, (DW, DH), interpolation=cv2.INTER_AREA), (24, 24))
+    for x, z in zip(gx.ravel(), gz.ravel()):
+        if valid[z, x] < 255: continue
+        u, v = photo_px(WJ["x0"] + x * mp, WJ["z0"] + z * mp)
+        if 40 < u < DW - 40 and 40 < v < DH - 40: pa.append(small_w[z, x]); pb.append(small_d[int(v), int(u)])
+    la, lb = lab(np.uint8([pa]))[0], lab(np.uint8([pb]))[0]; g2 = np.clip(lb.std(0) / la.std(0), 0.85, 1.25); print("wide layer: overlap samples", len(pa), "gain", g2.round(2))
+    wide = cv2.cvtColor(np.clip((lab(wide) - la.mean(0)) * g2 + lb.mean(0), 0, 255).astype(np.uint8), cv2.COLOR_LAB2BGR)
+    wide = grade(wide, k=1.0)      # `im` was graded before it was sampled above, so the match already carries most of the colour; this evens out what the match cannot
+    to_px = lambda x, z, k_=1.0: ((x - WJ["x0"]) / mp * k_, (z - WJ["z0"]) / mp * k_)
+    for tag, W_, q_ in (("hd", 6144, 80), ("sd", 3072, 78)):
+        k_ = W_ / wW; webp(f"web/wide_{tag}.webp", focus(cv2.resize(wide, (W_, round(hW * k_)), interpolation=cv2.INTER_AREA), lambda x, z, k_=k_: to_px(x, z, k_), mp / k_), q_)
+    a_ = cv2.resize(valid, (1024, round(hW * 1024 / wW)), interpolation=cv2.INTER_AREA); a_ = (a_ == 255).astype(np.uint8); kpx = 1024 / (wW * mp)       # soft 35 m edge into the satellite
+    a_[[0, -1], :] = 0; a_[:, [0, -1]] = 0; dt = cv2.distanceTransform(a_, cv2.DIST_L2, 5) / kpx; cv2.imwrite("web/wide_a.png", (np.clip((dt - 4) / 35, 0, 1) ** 1.3 * 255).astype(np.uint8))
+    json.dump(dict(x0=WJ["x0"], z0=WJ["z0"], x1=WJ["x1"], z1=WJ["z1"]), open("web/wide.json", "w")); print("wide layer written")
