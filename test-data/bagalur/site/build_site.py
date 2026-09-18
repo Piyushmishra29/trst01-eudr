@@ -5,9 +5,10 @@ def webp(path, bgr, q): Image.fromarray(cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)).sa
 from shapely.geometry import Polygon
 from build_site_geo import *
 parcels = []
-for i, f in enumerate(json.load(open("../plots/bagalur_whole_plot.eudr.geojson"))["features"]):
+import os; SRC = "../plots/bagalur_parcels_edited.geojson" if os.path.exists("../plots/bagalur_parcels_edited.geojson") else "../plots/bagalur_whole_plot.eudr.geojson"   # boundaries edited in the page (pull_edits.py) win
+for i, f in enumerate(json.load(open(SRC))["features"]):
     ring = [world_ll(*c[:2]) for c in f["geometry"]["coordinates"][0]]; p = Polygon(ring); c = p.representative_point()
-    parcels.append(dict(id=f"{i + 1:02d}", ring=ring, m2=round(p.area), perim=round(p.length), at=[round(c.x, 1), round(c.y, 1)]))
+    parcels.append(dict(id=f["properties"].get("id") or f"{i + 1:02d}", ring=ring, m2=round(p.area), perim=round(p.length), at=[round(c.x, 1), round(c.y, 1)]))
 # ---------- focus: everything outside the parcels is dimmed and greyed a little, baked into the images (soft 8 m edge), so the eye goes to the estate
 def focus(img, to_px, m_per_px, dim=0.6, sat=0.55):
     mask = np.zeros(img.shape[:2], np.uint8)

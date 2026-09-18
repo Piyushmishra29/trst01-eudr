@@ -180,22 +180,33 @@ function drape(ring, close = true, lift = 0.8) { const out = [], n = ring.length
 const line = (pts, mat, order) => { const g = new LineGeometry(); g.setPositions(pts); const l = new Line2(g, mat); l.renderOrder = order; l.frustumCulled = false; return l; };
 const parcelG = new THREE.Group(), parcelS = new THREE.Group(), fillM = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.14, depthTest: false, depthWrite: false, fog: false }), fillSel = fillM.clone(); fillSel.color.set(0xffd9a0); fillSel.opacity = 0.2;
 const AC = 4046.8564, fmtAc = m2 => (m2 / AC).toFixed(2), acGu = m2 => { const a = m2 / AC, w = Math.floor(a), g = Math.round((a - w) * 40); return g === 40 ? `${w + 1} ac 0 g` : `${w} ac ${g} g`; };
-const parcels = SITE.parcels.map(p => {
-  const ring = p.ring.slice(0, -1).length >= 3 && p.ring[0][0] === p.ring.at(-1)[0] && p.ring[0][1] === p.ring.at(-1)[1] ? p.ring.slice(0, -1) : p.ring, pts = drape(ring);
-  const under = line(pts, mUnder, 1), top = line(pts, mLine, 2), ghost = line(pts, mGhost, 2), sel = line(pts, mSel, 4); sel.visible = false;
-  under.isLine = top.isLine = true;   // flag only: makes the contact-shading pass skip them (it hides Points and Lines), drawing is unchanged
-  const tri = THREE.ShapeUtils.triangulateShape(ring.map(([x, z]) => new THREE.Vector2(x, z)), []).flat(), fg = new THREE.BufferGeometry(), cy = groundY(...p.at);
-  fg.setAttribute("position", new THREE.Float32BufferAttribute(ring.flatMap(([x, z]) => [x, groundY(x, z) + 0.5, z]), 3)); fg.setIndex(tri);
-  const fill = new THREE.Mesh(fg, fillM); fill.visible = false; fill.renderOrder = 0; fill.frustumCulled = false; parcelG.add(fill, ghost, sel); parcelS.add(under, top);
-  return { ...p, ring, fill, sel, pos: new THREE.Vector3(p.at[0], cy + 2, p.at[1]) };
-});
-overlay.add(parcelG); scene.add(parcelS);
 const inRing = (x, z, r) => { let c = false; for (let i = 0, j = r.length - 1; i < r.length; j = i++) if ((r[i][1] > z) !== (r[j][1] > z) && x < (r[j][0] - r[i][0]) * (z - r[i][1]) / (r[j][1] - r[i][1]) + r[i][0]) c = !c; return c; };
+function geom(ring) {                                    // area, perimeter and a label point that lies inside (centroid, or the roomiest grid point for a bent shape)
+  let a2 = 0, cx = 0, cz = 0, per = 0; const n = ring.length; for (let i = 0; i < n; i++) { const [x, z] = ring[i], [x2, z2] = ring[(i + 1) % n], k = x * z2 - x2 * z; a2 += k; cx += (x + x2) * k; cz += (z + z2) * k; per += Math.hypot(x2 - x, z2 - z); }
+  let at = Math.abs(a2) > 1e-6 ? [cx / (3 * a2), cz / (3 * a2)] : ring[0].slice();
+  if (!inRing(at[0], at[1], ring)) { const xs = ring.map(q => q[0]), zs = ring.map(q => q[1]), x0 = Math.min(...xs), x1 = Math.max(...xs), z0 = Math.min(...zs), z1 = Math.max(...zs); let best = -1;
+    for (let i = 1; i < 16; i++) for (let j = 1; j < 16; j++) { const x = x0 + (x1 - x0) * i / 16, z = z0 + (z1 - z0) * j / 16; if (!inRing(x, z, ring)) continue; let d = 1e9; for (let k = 0; k < n; k++) { const [ax, az] = ring[k], [bx, bz] = ring[(k + 1) % n], t = Math.max(0, Math.min(1, ((x - ax) * (bx - ax) + (z - az) * (bz - az)) / ((bx - ax) ** 2 + (bz - az) ** 2 || 1))); d = Math.min(d, Math.hypot(x - ax - (bx - ax) * t, z - az - (bz - az) * t)); } if (d > best) { best = d; at = [x, z]; } } }
+  return { m2: Math.round(Math.abs(a2) / 2), perim: Math.round(per), at }; }
+let EDITS = null; try { const r = await fetch("edits/parcels.json", { cache: "no-store" }); if (r.ok) EDITS = await r.json(); } catch { }   // boundaries saved from the editor (?edit) win over the baked ones
+const openRing = r => r.length > 3 && r[0][0] === r.at(-1)[0] && r[0][1] === r.at(-1)[1] ? r.slice(0, -1) : r.slice();
+const parcels = (EDITS?.parcels?.length ? EDITS.parcels.map(e => ({ id: e.id, ring: e.ring, ...geom(openRing(e.ring)) })) : SITE.parcels).map(p => ({ ...p, ring: openRing(p.ring) }));
+function buildParcel(p) {                                // draws one parcel from p.ring, or redraws it after an edit
+  const pts = drape(p.ring), fresh = !p.under;
+  if (fresh) { p.under = line(pts, mUnder, 1); p.top = line(pts, mLine, 2); p.ghost = line(pts, mGhost, 2); p.sel = line(pts, mSel, 4); p.sel.visible = false;
+    p.under.isLine = p.top.isLine = true;   // flag only: makes the contact-shading pass skip them (it hides Points and Lines), drawing is unchanged
+    p.fill = new THREE.Mesh(new THREE.BufferGeometry(), fillM); p.fill.visible = false; p.fill.renderOrder = 0; p.fill.frustumCulled = false; parcelG.add(p.fill, p.ghost, p.sel); parcelS.add(p.under, p.top); p.pos = new THREE.Vector3(); }
+  else for (const l of [p.under, p.top, p.ghost, p.sel]) { l.geometry.dispose(); l.geometry = new LineGeometry(); l.geometry.setPositions(pts); }
+  let tri = []; try { tri = THREE.ShapeUtils.triangulateShape(p.ring.map(([x, z]) => new THREE.Vector2(x, z)), []).flat(); } catch { }
+  p.fill.geometry.dispose(); const fg = p.fill.geometry = new THREE.BufferGeometry(); fg.setAttribute("position", new THREE.Float32BufferAttribute(p.ring.flatMap(([x, z]) => [x, groundY(x, z) + 0.5, z]), 3)); fg.setIndex(tri);
+  p.pos.set(p.at[0], groundY(...p.at) + 2, p.at[1]); return p; }
+parcels.forEach(buildParcel);
+overlay.add(parcelG); scene.add(parcelS);
 
 // ---- labels (HTML, so type stays crisp): parcels and places, hidden when they would collide
 const labEl = $("labels"), labs = [];
 function addLabel(cls, html, pos, prio) { const el = document.createElement("div"); el.className = "lab " + cls; el.innerHTML = html; labEl.appendChild(el); const l = { el, pos, prio, cls, w: 0, h: 0 }; labs.push(l); return l; }
-parcels.forEach(p => { p.lab = addLabel("p", `PARCEL ${p.id}<small>${fmtAc(p.m2)} ac</small>`, p.pos, 1); p.lab.size = Math.sqrt(p.m2) * 0.8; });
+const labelParcel = p => { if (!p.lab) p.lab = addLabel("p", "", p.pos, 1); p.lab.el.innerHTML = `PARCEL ${p.id}<small>${fmtAc(p.m2)} ac</small>`; p.lab.w = 0; p.lab.size = Math.sqrt(p.m2) * 0.8; };
+parcels.forEach(labelParcel);
 SITE.pois.forEach(o => { addLabel("poi", o.name, new THREE.Vector3(o.at[0], groundY(...o.at) + 9, o.at[1]), 2).size = 150; });   // places: shown until the site is small on screen
 let showLabels = true; const _v = new THREE.Vector3();
 let lastLay = 0;
@@ -223,15 +234,16 @@ function setSun(deg) { const r = THREE.MathUtils.degToRad(deg); sun.position.set
 
 // ---- parcel card and list
 let selP = null, hovP = null;
-function select(p, fly = true) { if (selP) { selP.sel.visible = false; selP.fill.visible = false; selP.fill.material = fillM; } selP = p; document.querySelectorAll("#plist button").forEach(b => b.classList.toggle("sel", p && b.dataset.id === p.id));
+const ED = { on: false, onSelect: null };
+function select(p, fly = true) { ED.onSelect?.(p); if (selP) { selP.sel.visible = false; selP.fill.visible = false; selP.fill.material = fillM; } selP = p; document.querySelectorAll("#plist button").forEach(b => b.classList.toggle("sel", p && b.dataset.id === p.id));
   if (!p) { $("card").style.display = "none"; dirty = true; return; } p.sel.visible = true; p.fill.visible = true; p.fill.material = fillSel;
   $("c-t").textContent = `Parcel ${p.id}`; $("c-d").innerHTML = [["Area", `${fmtAc(p.m2)} acres`], ["", acGu(p.m2)], ["", `${Math.round(p.m2 * 10.7639).toLocaleString("en-IN")} sq ft`], ["", `${(p.m2 / 1e4).toFixed(2)} ha`], ["Perimeter", `${p.perim.toLocaleString("en-IN")} m`]].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
   $("card").style.display = "block";
-  if (fly) { const r = Math.sqrt(p.m2), dir = camera.position.clone().sub(controls.target).setY(0).normalize(), t = new THREE.Vector3(p.at[0], groundY(...p.at), p.at[1]); flyTo(t.clone().addScaledVector(dir, r * 1.5).setY(t.y + r * 1.15), t, 1500); } dirty = true; }
-$("plist").innerHTML = parcels.map(p => `<button data-id="${p.id}"><span>Parcel ${p.id}</span><span>${fmtAc(p.m2)} ac</span></button>`).join("");
+  if (fly) { const r = Math.sqrt(p.m2), dir = ED.on ? new THREE.Vector3(0, 0, 0.02) : camera.position.clone().sub(controls.target).setY(0).normalize(), t = new THREE.Vector3(p.at[0], groundY(...p.at), p.at[1]); flyTo(t.clone().addScaledVector(dir, r * 1.5).setY(t.y + r * (ED.on ? 2.6 : 1.15)), t, 1500); } dirty = true; }
+const refreshList = () => { $("plist").innerHTML = parcels.map(p => `<button data-id="${p.id}"><span>Parcel ${p.id}</span><span>${fmtAc(p.m2)} ac</span></button>`).join(""); $("s-ac").textContent = (parcels.reduce((a, p) => a + p.m2, 0) / AC).toFixed(1); $("s-pc").textContent = parcels.length; };
 $("plist").onclick = e => { const b = e.target.closest("button"); if (b) select(parcels.find(p => p.id === b.dataset.id)); };
 $("plist-h").onclick = () => $("brand").classList.toggle("open"); document.querySelector("#card .x").onclick = () => select(null);
-$("s-ac").textContent = (parcels.reduce((a, p) => a + p.m2, 0) / AC).toFixed(1); $("s-pc").textContent = parcels.length; $("s-st").textContent = new Set(STRUCT.map(s => s.g)).size;
+refreshList(); $("s-st").textContent = new Set(STRUCT.map(s => s.g)).size;
 
 // ---- measuring
 let mode = null, mPts = [], mLive = null, mLab = null; const measG = new THREE.Group(); overlay.add(measG); const dots = [];
@@ -253,7 +265,7 @@ cv.addEventListener("pointermove", e => { if (touch || mode || e.buttons) return
   if (h !== hovP) { if (hovP && hovP !== selP) hovP.fill.visible = false; hovP = h; if (h && h !== selP) { h.fill.material = fillM; h.fill.visible = true; } cv.style.cursor = h ? "pointer" : ""; dirty = true; } });
 cv.addEventListener("pointerup", e => { if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 6) return; const p = pick(e), now = performance.now(), dbl = now - lastClick < 320; lastClick = now; if (!p) return;
   if (mode) { if (dbl) { mPts.pop(); redrawMeasure(); endMeasure(); } else { mPts.push(p); redrawMeasure(); } return; }
-  if (dbl) { const d = THREE.MathUtils.clamp(camera.position.distanceTo(p) * 0.45, 60, 500), dir = camera.position.clone().sub(controls.target).normalize(); if (dir.y < 0.42) dir.setY(0.42).normalize(); flyTo(p.clone().addScaledVector(dir, d), p.clone(), 1300); setTimeout(startOrbit, 1350); return; }
+  if (dbl && !ED.on) { const d = THREE.MathUtils.clamp(camera.position.distanceTo(p) * 0.45, 60, 500), dir = camera.position.clone().sub(controls.target).normalize(); if (dir.y < 0.42) dir.setY(0.42).normalize(); flyTo(p.clone().addScaledVector(dir, d), p.clone(), 1300); setTimeout(startOrbit, 1350); return; }
   const hit = parcelG.visible ? parcels.find(a => inRing(p.x, p.z, a.ring)) : null; setTimeout(() => { if (performance.now() - lastClick >= 300) select(hit || null, false); }, 310); });
 
 // ---- toolbar, layers, share
@@ -308,6 +320,7 @@ $("load").style.opacity = 0; setTimeout(() => $("load").remove(), 900); window._
 
 // sharper ground on capable desktops: swap in the 6,720 px photo once everything is up
 if (!lite && renderer.capabilities.maxTextureSize >= 8192 && q.get("uhd") !== "0") setTimeout(() => level === 2 && texLoader.loadAsync("tex_uhd.webp").then(t => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = maxAniso; for (const m of [ground.material, roofM]) { m.map = t; m.needsUpdate = true; } tex.dispose(); tex = t; dirty = true; }).catch(() => {}), 7000);   // only machines that kept full quality through the opening move
+if (q.has("edit")) import("./editor.js").then(m => m.start({ THREE, ED, parcels, camera, controls, pick, groundY, buildParcel, labelParcel, refreshList, geom, select, go, toast, treeG, reshadow, labs, labEl, parcelG, parcelS, saved: EDITS, markDirty: () => dirty = true })).catch(e => { window.__err = String(e); });
 window.__q = () => level; if (q.has("dbg")) window.__dbg = { scene, renderer, treeG, bld, ground, sun, overlay, labs, camera, controls, CX, CZ };
 </script>
 </body>
