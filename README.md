@@ -126,7 +126,7 @@ The full-resolution photo (6 cm/px) is uploaded to Cesium ion as a tiled imagery
 
 - the 14 whole plots with area, tap for the EUDR details
 - mango and areca nut (supari) blocks with approximate plant counts (one greenness peak per plant)
-- 1,323 trees and plants and 39 buildings in 3D, a few notes (polyhouses, sheds, ponds, solar roof). Trees are instanced game-style models (trunk, branches, alpha leaf cards; mango-type, coconut and areca), about 1 MB for all of them (`build_trees.py`). Every counted orchard plant gets one. Buildings carry the real roof photo, with gable roofs (`build_model.py`). Both sit on Cesium's terrain: the ground rises about 13 m across the farm, so heights are sampled once (`terrain_grid.json`) and baked in
+- 1,323 trees and plants and 39 buildings in 3D, a few notes (polyhouses, sheds, ponds, solar roof). Trees are instanced game-style models (trunk, branches, alpha leaf cards; mango-type, coconut and areca), about 1 MB for all of them (`build_trees.py`). Each tree takes the colour of its own crown in the drone photo (9 leaf tints), with light baked in: sunlit top, shaded underside. Every counted orchard plant gets one. Buildings carry the real roof photo, with gable roofs (`build_model.py`). Both sit on Cesium's terrain: the ground rises about 13 m across the farm, so heights are sampled once (`terrain_grid.json`) and baked in
 - distance and area measuring, and a 6-step guided tour (`?tour=1` to `?tour=6` link straight to a step)
 
 <img src="docs/img/cesium_tour.jpg" width="820">
