@@ -41,3 +41,10 @@ for tag, W_, q_ in (("uhd", 6720, 86), ("hd", 4032, 88), ("sd", 2016, 86)):
     t = cv2.resize(im, (W_, W_ * 3 // 4), interpolation=cv2.INTER_AREA).astype(np.float32) + cv2.resize(corr, (W_, W_ * 3 // 4), interpolation=cv2.INTER_CUBIC)
     cv2.imwrite(f"web/tex_{tag}.jpg", np.clip(t, 0, 255).astype(np.uint8), [cv2.IMWRITE_JPEG_QUALITY, q_])
 print("sat tone gain", gain.round(2), "edge blend up to 70 m")
+
+# ---------- wide context (fetch_context.py): same tone as the inner block, so the land carries on to the horizon
+ctx = cv2.imread("work/context.tif")
+if ctx is not None:
+    inner = cv2.resize(sat, (500, 375), interpolation=cv2.INTER_AREA); c0 = ctx[2000 - 187:2000 + 188, 2000 - 250:2000 + 250]        # the inner block's place in the 4 m grid
+    a_, b_ = lab(c0).reshape(-1, 3), lab(inner).reshape(-1, 3); ctx_l = (lab(ctx) - a_.mean(0)) * np.clip(b_.std(0) / a_.std(0), 0.8, 1.25) + b_.mean(0)      # first onto the inner block's own tone (different tile dates)
+    cv2.imwrite("web/context.jpg", tone(cv2.cvtColor(np.clip(ctx_l, 0, 255).astype(np.uint8), cv2.COLOR_LAB2BGR)), [cv2.IMWRITE_JPEG_QUALITY, 84]); print("context written")
