@@ -26,6 +26,23 @@ print(len(parcels), "parcels", sum(p["m2"] for p in parcels) / 1e4, "ha")
 im = cv2.imread("../cesium/work/DJI_0995_enh.png")                                  # enhance.py output (8064 x 6048)
 im = (np.clip((im.astype(np.float32) / 255) ** 0.8 * 0.94 + 0.05, 0, 1) * 255).astype(np.uint8)      # open the shadows a little: the 3D scene adds its own shading on top
 
+# ---------- land colour: the dehazed dry-season photo reads grey-violet. Grey land is eased to what it is: dark scrub towards green, light bare ground towards warm brown.
+# Already colourful pixels (red soil, crops, water) keep their hue and gain a little saturation; roofs are masked out so sheets and concrete stay neutral.
+def grade(bgr, keep=None, k=1.0):
+    lab = cv2.cvtColor(bgr, cv2.COLOR_BGR2LAB).astype(np.float32); L, a, b = lab[..., 0], lab[..., 1] - 128, lab[..., 2] - 128; ch = np.hypot(a, b)
+    grey = np.clip(1 - ch / 24, 0, 1) * np.clip((230 - L) / 40, 0, 1)                       # how grey (and not a white surface) the pixel is
+    dark = np.clip((125 - L) / 45, 0, 1); w = grey * k                                       # dark grey = scrub and canopy shade, light grey = bare ground and tracks
+    ta = -13 * dark + 5 * (1 - dark); tb = 17 * dark + 15 * (1 - dark)                      # target tint: leaf green / warm earth
+    vib = 1 + 0.42 * k * np.clip(1 - ch / 45, 0, 1); a2 = a * vib + (ta - a) * w * 0.9; b2 = b * vib + (tb - b) * w * 0.9
+    cool = (b < -4) & (a < 6)                                                                # water and blue sheets: leave alone
+    a2 = np.where(cool, a, a2); b2 = np.where(cool, b, b2)
+    out = cv2.cvtColor(np.clip(np.dstack([L, a2 + 128, b2 + 128]), 0, 255).astype(np.uint8), cv2.COLOR_LAB2BGR)
+    if keep is not None: m = cv2.GaussianBlur(keep.astype(np.float32), (0, 0), 3)[..., None]; out = (out * (1 - m) + bgr * m).astype(np.uint8)
+    return out
+roofs = np.zeros(im.shape[:2], np.uint8)
+for b_ in json.load(open("../ai3d/web/buildings.json"))["buildings"]: cv2.fillPoly(roofs, [np.int32(np.array(b_["poly"]) * im.shape[1] / DW)], 1)
+cv2.imwrite("work/grade_before.jpg", cv2.resize(im, (2016, 1512)), [1, 85]); im = grade(im, cv2.dilate(roofs, np.ones((9, 9), np.uint8))); cv2.imwrite("work/grade_after.jpg", cv2.resize(im, (2016, 1512)), [1, 85])
+
 # ---------- seamless edge: the satellite is another day, season and camera, so the surveyed rectangle reads as a box unless the colours meet
 sat = cv2.imread("../ai3d/web/sat_hd.jpg"); k = sat.shape[1] / SW                       # satellite block, maybe stored smaller than its nominal grid
 w, h = 1008, 756; uu, vv = np.meshgrid(np.linspace(0, DW, w), np.linspace(0, DH, h)); fx, fy = uu / DW * (GX - 1), vv / DH * (GY - 1)
@@ -36,7 +53,7 @@ dr = cv2.resize(im, (w, h), interpolation=cv2.INTER_AREA); lab = lambda x: cv2.c
 # 1. whole satellite block takes the drone photo's overall tone (Lab mean and spread over the shared ground)
 ls, ld = lab(sat_d).reshape(-1, 3), lab(dr).reshape(-1, 3); gain = ld.std(0) / ls.std(0); gain = np.clip(gain, 0.8, 1.22)
 def tone(x):                                             # 80% of the way: a full match over-cooks fields the drone never saw
-    m = cv2.cvtColor(np.clip((lab(x) - ls.mean(0)) * gain + ld.mean(0) - np.array([6, 0, 0]), 0, 255).astype(np.uint8), cv2.COLOR_LAB2BGR); return cv2.addWeighted(m, 0.8, x, 0.2, 0)
+    m = cv2.cvtColor(np.clip((lab(x) - ls.mean(0)) * gain + ld.mean(0) - np.array([6, 0, 0]), 0, 255).astype(np.uint8), cv2.COLOR_LAB2BGR); return grade(cv2.addWeighted(m, 0.8, x, 0.2, 0), k=0.8)
 sat_m = focus(tone(sat), lambda x, z: (x / PX + SW / 2, z / PX + SH / 2), PX); webp("web/sat_hd.webp", sat_m, 80); webp("web/sat_sd.webp", cv2.resize(sat_m, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_AREA), 78)
 # 2. near the border the drone photo's broad colour (not its detail) eases into the satellite's, so fields carry across the edge
 blur = lambda x, s: cv2.GaussianBlur(x.astype(np.float32), (0, 0), s); diff = blur(tone(sat_d), 22) - blur(dr, 22)
