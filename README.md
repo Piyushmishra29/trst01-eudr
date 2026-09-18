@@ -93,6 +93,16 @@ The photo sits at its true position inside a 2 × 1.5 km block of Esri satellite
 
 <img src="docs/img/ai3d_drone_vs_satellite_wide.jpg" width="820">
 
+**Trees and buildings are real 3D objects, found by open-source models** (all run locally, no paid API):
+
+- **Trees:** DeepForest (tree-crown detector trained on 10 cm aerial imagery, the same scale as this photo) finds the separate trees; dense blocks and clumps get one crown per bright canopy peak. 854 trees in total (`trees.py`, `relief2.py`). The viewer builds each as a rounded crown on a trunk, coloured by the photo projected straight down.
+- **Buildings:** SAM 2.1 segments the photo; segments that are raised in the AI depth, not vegetation and compact are kept as roofs, plus a few clicked by hand where it missed (`sam_masks.py`, `sam_points.py`, `buildings.py`). 39 footprints, extruded with the photo on the roof and plain vertical walls.
+- The ground keeps only a gentle relief from Depth Anything V2.
+
+<img src="docs/img/ai3d_trees_buildings.jpg" width="820">
+
+<img src="docs/img/ai3d_detections.jpg" width="820">
+
 - **Phones:** the viewer loads a light version by default (2048 px photo, 504×378 grid, about 2.5 MB). It frames portrait screens to fit, redraws only when something moves, and has an **HD** button for the full 4032 px version.
 - **Heights are illustrative, not measured.** Use WebODM or a survey for anything that needs real heights.
 
@@ -100,7 +110,7 @@ The photo sits at its true position inside a 2 × 1.5 km block of Esri satellite
 |:-:|:-:|:-:|
 | <img src="docs/img/ai3d_depth_viewer.jpg" width="330"> | <img src="docs/img/ai3d_AI_render_nano_banana_pro.jpg" width="330"> | <img src="docs/img/ai3d_phone.jpg" width="130"> |
 
-The middle image is **AI-generated**. It was made from the depth-viewer render (angle and layout) plus the real photo (detail), 2 credits. The layout matches the farm, but the trees, walls and background are invented, so it is for pitch visuals only and never for EUDR. The code is in `test-data/bagalur/ai3d/` (`depth.py`, `relief.py`, `prompt.txt`, `web/`).
+The middle image is **AI-generated**. It was made from the depth-viewer render (angle and layout) plus the real photo (detail), 2 credits. The layout matches the farm, but the trees, walls and background are invented, so it is for pitch visuals only and never for EUDR. The code is in `test-data/bagalur/ai3d/` (`depth.py`, `relief2.py`, `trees.py`, `buildings.py`, `prompt.txt`, `web/`).
 
 ---
 
