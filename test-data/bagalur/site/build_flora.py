@@ -46,7 +46,7 @@ for bi, b in enumerate(BLD):
 # ---------- what only the 500 m photo sees (build_wide_objects.py): full-length poultry sheds, tunnels, greenhouses. A shed the main photo cuts off at its edge is replaced by the full one.
 import os
 if os.path.exists("work/wide_structures.json"):
-    WS = json.load(open("work/wide_structures.json")); inside = lambda s, x, z, pad: abs((x - s["x"]) * np.cos(s["a"]) + (z - s["z"]) * np.sin(s["a"])) < s["w"] / 2 + pad and abs(-(x - s["x"]) * np.sin(s["a"]) + (z - s["z"]) * np.cos(s["a"])) < s["d"] / 2 + pad
+    WS = json.load(open("work/wide_structures.json")); inside = lambda s, x, z, pad: "a" in s and abs((x - s["x"]) * np.cos(s["a"]) + (z - s["z"]) * np.sin(s["a"])) < s["w"] / 2 + pad and abs(-(x - s["x"]) * np.sin(s["a"]) + (z - s["z"]) * np.cos(s["a"])) < s["d"] / 2 + pad
     cen = lambda s: (s["x"], s["z"]) if "x" in s else tuple(np.mean(s["ring"], 0)); n0 = len(structures)
     structures = [s for s in structures if not any(w_["kind"] == "poultry" and inside(w_, *cen(s), 3) for w_ in WS)]; print(n0 - len(structures), "clipped sheds replaced by their full-length version;", len(WS), "structures added from the 500 m photo")
     structures += [dict(s, g=100 + i) for i, s in enumerate(WS)]

@@ -17,6 +17,9 @@ def add(kind, comp, roof, h, min_fill=0.72, max_w=1e9):
     pts = np.argwhere(comp)[:, ::-1].astype(np.float32); (cx, cy), (w, d), a = cv2.minAreaRect(pts); fill = comp.sum() / max(w * d, 1)
     if fill < min_fill or min(w, d) * mp < 4.5 or min(w, d) * mp > max_w: return
     if inner[int(cy), int(cx)] and kind != 'poultry': return
+    if kind != 'poultry' and fill < 0.93:                   # not a true rectangle (a tapering plastic tunnel): keep its own outline, straightened to a few edges
+        cs = cv2.findContours(comp.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0]; c = max(cs, key=cv2.contourArea); ring = cv2.approxPolyDP(c, 2.0 / mp, True).reshape(-1, 2)
+        if len(ring) >= 3: x, z = to_w(cx, cy); S.append(dict(x=round(x, 2), z=round(z, 2), ring=[[round(v, 2) for v in to_w(*q)] for q in ring], h=h, roof="flat", kind=kind, big=int(w * d * mp * mp > 1500), src="wide")); return
     s_ = fill ** 0.5 * 1.02 if kind != 'poultry' else 1.0; x, z = to_w(cx, cy)
     if kind == 'poultry':                                   # tiled sheds here are about 11 m across; the colour mask tends to catch a little less
         if w < d: w, d = 11.5 / mp, d + 1.5 / mp
@@ -43,13 +46,16 @@ for s1, s2, thr in ((2.5, 7, 9), (6, 16, 8)):
         if any(abs(x - t[0]) * mp < max(rad, t[2]) and abs(y - t[1]) * mp < max(rad, t[2]) for t in T[-400:]): continue
         T.append((x, y, rad))
 roofm = np.zeros((H, W), np.uint8)
-for s in S: c_, s_ = np.cos(s["a"]), np.sin(s["a"]); cv2.fillPoly(roofm, [np.int32([[(s["x"] + c_ * i * s["w"] / 2 - s_ * j * s["d"] / 2 - WJ["x0"]) / mp, (s["z"] + s_ * i * s["w"] / 2 + c_ * j * s["d"] / 2 - WJ["z0"]) / mp] for i, j in [(-1, -1), (1, -1), (1, 1), (-1, 1)]])], 1)
+def ring_px(s):
+    if 'ring' in s: return np.int32([[(x - WJ['x0']) / mp, (z - WJ['z0']) / mp] for x, z in s['ring']])
+    c_, s_ = np.cos(s['a']), np.sin(s['a']); return np.int32([[(s['x'] + c_ * i * s['w'] / 2 - s_ * j * s['d'] / 2 - WJ['x0']) / mp, (s['z'] + s_ * i * s['w'] / 2 + c_ * j * s['d'] / 2 - WJ['z0']) / mp] for i, j in [(-1, -1), (1, -1), (1, 1), (-1, 1)]])
+for s in S: cv2.fillPoly(roofm, [ring_px(s)], 1)
 T = [t for t in T if not roofm[t[1], t[0]]]; vis = im.copy(); out = []
 for x, y, rad in T:
     px = im[max(y - 3, 0):y + 4, max(x - 3, 0):x + 4].reshape(-1, 3).astype(np.float32); l = px @ np.array([0.11, 0.59, 0.3]); hi, lo = px[l >= np.percentile(l, 65)].mean(0), px[l <= np.percentile(l, 35)].mean(0)
     hx = lambda c: int(c[2]) << 16 | int(c[1]) << 8 | int(c[0]); wx, wz = to_w(x, y); out.append([round(wx, 1), round(wz, 1), round(rad, 2), round(rad * 1.7, 2), 0, hx(hi), hx(lo)]); cv2.circle(vis, (x, y), int(rad / mp), (0, 255, 255), 1)
 col = dict(poultry=(255, 0, 255), building=(0, 0, 255), polyhouse=(255, 128, 0))
 for i, s in enumerate(S):
-    c_, s_ = np.cos(s["a"]), np.sin(s["a"]); P = np.int32([[(s["x"] + c_ * a * s["w"] / 2 - s_ * b_ * s["d"] / 2 - WJ["x0"]) / mp, (s["z"] + s_ * a * s["w"] / 2 + c_ * b_ * s["d"] / 2 - WJ["z0"]) / mp] for a, b_ in [(-1, -1), (1, -1), (1, 1), (-1, 1)]]); cv2.polylines(vis, [P], True, col[s["kind"]], 3); cv2.putText(vis, str(i), tuple(P[0]), 0, 0.9, (255, 255, 255), 2)
+    P = ring_px(s); cv2.polylines(vis, [P], True, col[s["kind"]], 3); cv2.putText(vis, str(i), tuple(P[0]), 0, 0.9, (255, 255, 255), 2)
 cv2.polylines(vis, [cv2.findContours(inner, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0][0]], True, (255, 255, 255), 2)
 cv2.imwrite("work/wide_objects.jpg", vis, [1, 82]); json.dump(S, open("work/wide_structures.json", "w")); json.dump(out, open("work/wide_trees.json", "w")); print(len(S), "structures", {k_: sum(s["kind"] == k_ for s in S) for k_ in col}, "|", len(out), "trees")
