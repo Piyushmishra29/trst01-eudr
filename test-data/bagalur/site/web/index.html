@@ -112,7 +112,7 @@ const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true; controls.dampingFactor = 0.07; controls.maxPolarAngle = Math.PI * 0.475; controls.minDistance = 35; controls.maxDistance = 4200; controls.zoomSpeed = 0.9; controls.rotateSpeed = 0.55;
 controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
 
-scene.add(new THREE.HemisphereLight(0xf4f7ff, 0x8a7a66, 1.25));
+scene.add(new THREE.HemisphereLight(0xfff9f0, 0x8a7a66, 1.25));
 const sun = new THREE.DirectionalLight(0xfff0dd, 2.1); sun.castShadow = true;
 Object.assign(sun.shadow.camera, { left: -340, right: 340, top: 340, bottom: -340, near: 1, far: 1500 }); sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.6; sun.shadow.radius = 2.5;
 sun.shadow.mapSize.set(lite ? 2048 : 4096, lite ? 2048 : 4096); scene.add(sun, sun.target);

@@ -36,6 +36,8 @@ def grade(bgr, keep=None, k=1.0):
     vib = 1 + 0.42 * k * np.clip(1 - ch / 45, 0, 1); a2 = a * vib + (ta - a) * w * 0.9; b2 = b * vib + (tb - b) * w * 0.9
     cool = (b < -4) & (a < 6)                                                                # water and blue sheets: leave alone
     a2 = np.where(cool, a, a2); b2 = np.where(cool, b, b2)
+    purple = np.clip((a - 1) / 5, 0, 1) * np.clip((5 - b) / 8, 0, 1) * np.clip((120 - L) / 40, 0, 1)      # dehazing leaves shadows violet: dark violet goes to a plain, slightly warm dark
+    a2 = a2 * (1 - purple) + 0.5 * purple; b2 = b2 * (1 - purple) + 5 * purple
     out = cv2.cvtColor(np.clip(np.dstack([L, a2 + 128, b2 + 128]), 0, 255).astype(np.uint8), cv2.COLOR_LAB2BGR)
     if keep is not None: m = cv2.GaussianBlur(keep.astype(np.float32), (0, 0), 3)[..., None]; out = (out * (1 - m) + bgr * m).astype(np.uint8)
     return out
