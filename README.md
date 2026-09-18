@@ -67,6 +67,20 @@ The ODM Aukerman sample (77 photos) processed in 14 minutes on an RTX 3070. Left
 
 <img src="docs/img/webodm_test.jpg" width="820">
 
+### WebODM on the Bagalur photos
+
+This was not a mapping flight: the SD card has 3 straight-down photos (500 m, 300 m and 204 m) and 2 angled ones. Even so, WebODM builds a usable orthophoto from them. The best run is **v3**: all 5 photos, `feature-quality ultra`, `min-num-features 40000`, `pc-quality high`, `use-3dmesh`, `auto-boundary`, 4 cm/px, 6.5 min on the GPU. With only the 3 straight-down photos (v1 default, v2 `fast-orthophoto`), the map covers the low 204 m shot and not much more. The 3D mesh is poor in every run because there aren't enough overlapping views. A real flight at about 80% overlap fixes that.
+
+<img src="docs/img/webodm_bagalur_compare.jpg" width="820">
+
+**Live, no login** (served from the desktop over Tailscale Funnel, so it works only while that PC is on):
+
+- v3 map: https://b650-3070.tail641fa8.ts.net:8443/public/task/21b65540-af4f-4a21-81f4-af4234db12d4/map/
+- v3 3D: https://b650-3070.tail641fa8.ts.net:8443/public/task/21b65540-af4f-4a21-81f4-af4234db12d4/3d/
+- v2 fast-ortho map: https://b650-3070.tail641fa8.ts.net:8443/public/task/4a411725-b44f-435e-8fdf-c927f1980bd9/map/
+
+The share links are view-only. The WebODM dashboard at the same host still needs the login.
+
 ---
 
 ## Tools
