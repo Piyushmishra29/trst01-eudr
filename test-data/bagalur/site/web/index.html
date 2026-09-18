@@ -91,6 +91,7 @@ import { EffectComposer } from "./jsm/postprocessing/EffectComposer.js";
 import { RenderPass } from "./jsm/postprocessing/RenderPass.js";
 import { GTAOPass } from "./jsm/postprocessing/GTAOPass.js";
 import { OutputPass } from "./jsm/postprocessing/OutputPass.js";
+import { buildStructures, buildFlora } from "./models.js";
 
 const q = new URLSearchParams(location.search), $ = id => document.getElementById(id);
 const touch = matchMedia("(pointer:coarse)").matches, small = Math.min(screen.width, screen.height) < 700 || Math.min(innerWidth, innerHeight) < 500;
@@ -118,8 +119,8 @@ sun.shadow.mapSize.set(lite ? 2048 : 4096, lite ? 2048 : 4096); scene.add(sun, s
 const loadImg = src => new Promise((ok, err) => { const i = new Image(); i.onload = () => ok(i); i.onerror = err; i.src = src; });
 const J = async u => (await fetch(u)).json(), bmpLoader = new THREE.ImageBitmapLoader().setOptions({ imageOrientation: "flipY", premultiplyAlpha: "none" });
 const texLoader = { loadAsync: async u => { const t = new THREE.Texture(await bmpLoader.loadAsync(u)); t.flipY = false; t.needsUpdate = true; return t; } };   // createImageBitmap decodes in a worker thread: no long main-thread stall for the 12 to 34 MP photos
-const [AL, SEAM, TJ, BJ, SITE] = await Promise.all([J("a/align.json"), J("a/seam.json"), J("a/trees.json"), J("a/buildings.json"), J("site.json")]);
-const [SW, SH] = AL.sat_size, SPX = AL.sat_px_m, [DW, DH] = AL.drone_size, A = AL.A, TREES = TJ.trees, BLD = BJ.buildings;
+const [AL, SEAM, FJ, SJ, SITE] = await Promise.all([J("a/align.json"), J("a/seam.json"), J("flora.json"), J("structures.json"), J("site.json")]);
+const [SW, SH] = AL.sat_size, SPX = AL.sat_px_m, [DW, DH] = AL.drone_size, A = AL.A, FLORA = FJ.flora, STRUCT = SJ.structures;
 const DPX = Math.hypot(A[0][0], A[1][0]) * SPX;        // metres per photo px
 function seamAt(u, v) {
   const fx = Math.min(Math.max(u / DW, 0), 1) * (SEAM.gx - 1), fy = Math.min(Math.max(v / DH, 0), 1) * (SEAM.gy - 1);
@@ -129,7 +130,8 @@ function seamAt(u, v) {
 }
 const toWorld = (u, v) => { const [dx, dy] = seamAt(u, v); return [(A[0][0] * u + A[0][1] * v + A[0][2] + dx - SW / 2) * SPX, (A[1][0] * u + A[1][1] * v + A[1][2] + dy - SH / 2) * SPX]; };
 const det = A[0][0] * A[1][1] - A[0][1] * A[1][0];
-const toPhoto = (x, z) => { const X = x / SPX + SW / 2 - A[0][2], Y = z / SPX + SH / 2 - A[1][2]; return [(A[1][1] * X - A[0][1] * Y) / det, (-A[1][0] * X + A[0][0] * Y) / det]; };   // inverse, without the small seam correction
+const toPhoto = (x, z) => { const X0 = x / SPX + SW / 2 - A[0][2], Y0 = z / SPX + SH / 2 - A[1][2]; let u = (A[1][1] * X0 - A[0][1] * Y0) / det, v = (-A[1][0] * X0 + A[0][0] * Y0) / det;
+  for (let k = 0; k < 3; k++) { const [dx, dy] = seamAt(u, v), X = X0 - dx, Y = Y0 - dy; u = (A[1][1] * X - A[0][1] * Y) / det; v = (-A[1][0] * X + A[0][0] * Y) / det; } return [u, v]; };   // exact inverse of toWorld, seam included: roofs and heights land on the right photo pixels
 const corners = [[0, 0], [DW, 0], [DW, DH], [0, DH]].map(([u, v]) => toWorld(u, v));
 const CX = corners.reduce((a, c) => a + c[0], 0) / 4, CZ = corners.reduce((a, c) => a + c[1], 0) / 4;
 
@@ -161,59 +163,14 @@ const edge = fadeTex((g, w, h) => { g.fillStyle = "#000"; g.fillRect(0, 0, w, h)
 const ground = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: tex, alphaMap: edge, transparent: true, roughness: 0.96, metalness: 0 }));
 ground.material.color.setScalar(LIFT); ground.receiveShadow = true;   /* no castShadow: the raised border would draw a dark rim on the surroundings */ ground.renderOrder = -1; scene.add(ground);   // a touch over 1: the photo already holds its own shadows, the scene adds more
 
-// ---- structures: extruded from the AI roof outlines, the real roof from the photo on top, clean pale walls
-const bld = new THREE.Group(), roofM = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.75, side: THREE.DoubleSide }), wallM = new THREE.MeshStandardMaterial({ color: 0xf1eee8, roughness: 0.9, side: THREE.DoubleSide });
-for (const b of BLD) {
-  let P = b.poly.map(p => p.slice()), n = P.length, ridge = 0, roofIdx, gables = []; const R = [];
-  if (b.roof === "gable") {
-    const w = P.map(([u, v]) => toWorld(u, v)), d = (i, j) => Math.hypot(w[i][0] - w[j][0], w[i][1] - w[j][1]); if (d(0, 1) < d(1, 2)) P = [P[1], P[2], P[3], P[0]];
-    const mid = (i, j) => [(P[i][0] + P[j][0]) / 2, (P[i][1] + P[j][1]) / 2]; P.forEach(p => R.push([p[0], p[1], 0])); R.push([...mid(1, 2), 1], [...mid(3, 0), 1]);
-    roofIdx = [0, 1, 4, 0, 4, 5, 2, 3, 5, 2, 5, 4]; gables = [[1, 2, 4], [3, 0, 5]]; const ww = P.map(([u, v]) => toWorld(u, v)); ridge = 0.2 * Math.hypot(ww[1][0] - ww[2][0], ww[1][1] - ww[2][1]);
-  } else { P.forEach(p => R.push([p[0], p[1], 0])); roofIdx = THREE.ShapeUtils.triangulateShape(P.map(([u, v]) => new THREE.Vector2(u, v)), []).flat(); }
-  const rw = R.map(([u, v]) => toWorld(u, v)), cu = P.reduce((a, p) => a + p[0], 0) / n, cv = P.reduce((a, p) => a + p[1], 0) / n;
-  const y0 = gAt(cu, cv) * EX, y1 = y0 + (0.25 + 0.6 * b.h) * EX, Y = i => R[i][2] ? y1 + ridge : y1;
-  const roof = new THREE.BufferGeometry(); roof.setAttribute("position", new THREE.Float32BufferAttribute(rw.flatMap(([x, z], i) => [x, Y(i), z]), 3)); roof.setAttribute("uv", new THREE.Float32BufferAttribute(R.flatMap(([u, v]) => [u / DW, 1 - v / DH]), 2)); roof.setIndex(roofIdx); roof.computeVertexNormals();
-  const wp = [], wi = []; for (let i = 0; i < n; i++) { const [x, z] = rw[i], [x2, z2] = rw[(i + 1) % n], o = i * 4; wp.push(x, y1, z, x2, y1, z2, x, y0 - 1, z, x2, y0 - 1, z2); wi.push(o, o + 1, o + 2, o + 2, o + 1, o + 3); }
-  gables.forEach(tri => { const o = wp.length / 3; tri.forEach(i => wp.push(rw[i][0], Y(i), rw[i][1])); wi.push(o, o + 1, o + 2); });
-  const wall = new THREE.BufferGeometry(); wall.setAttribute("position", new THREE.Float32BufferAttribute(wp, 3)); wall.setIndex(wi); wall.computeVertexNormals();
-  const rm = new THREE.Mesh(roof, roofM), wm = new THREE.Mesh(wall, wallM); rm.castShadow = wm.castShadow = rm.receiveShadow = wm.receiveShadow = true; bld.add(rm, wm);
-}
-roofM.color.setScalar(1.25); scene.add(bld);
-
-// ---- trees: crowns carry the photo projected straight down, so every tree is its own colour; palms get fronds
-const rnd = (a, b, c) => { const x = Math.sin(a * 127.1 + b * 311.7 + c * 74.7) * 43758.5453; return x - Math.floor(x); };
-const treeG = new THREE.Group(); let treeMesh;
-{
-  const icoBig = new THREE.IcosahedronGeometry(1, lite ? 1 : 2).attributes.position, icoSm = new THREE.IcosahedronGeometry(1, 1).attributes.position, lobes = [], T = TREES.length;
-  TREES.forEach(([cx, cy, rx, ry, ht, palm], t) => { if (palm) return;
-    if (!lite && (rx + ry) / 2 > 26) { lobes.push([t, 0, 0, 0.74, 0.22, icoSm]); for (let k = 0; k < 4; k++) { const a = k * 1.571 + rnd(t, k, 1) * 1.2, o = 0.42 + 0.1 * rnd(t, k, 2); lobes.push([t, Math.cos(a) * o, Math.sin(a) * o, 0.5 + 0.12 * rnd(t, k, 3), -0.28 + 0.2 * rnd(t, k, 4), icoSm]); } }
-    else lobes.push([t, 0, 0, 1, 0, icoBig]); });
-  const y0 = new Float32Array(T), low = new Float32Array(T), half = new Float32Array(T), trunks = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.7, 1, 1, 6).translate(0, 0.5, 0), new THREE.MeshStandardMaterial({ color: 0x5e4a36, roughness: 1 }), T), m4 = new THREE.Matrix4();
-  TREES.forEach(([cx, cy, rx, ry, ht, palm], t) => { const rw = (rx + ry) / 2 * DPX; y0[t] = gAt(cx, cy) * EX;
-    if (palm) { low[t] = Math.max(ht * EX * 1.6, 2.2 * rw); half[t] = 0; } else { const H = Math.max(ht * EX, 1.5 * rw); half[t] = Math.min(0.38 * H, Math.max(0.35 * H, 0.75 * rw)); low[t] = H - 2 * half[t]; }
-    const [x, z] = toWorld(cx, cy), r = palm ? 0.24 : Math.max(0.12, Math.min(0.45, (rx + ry) * 0.0012)); trunks.setMatrixAt(t, m4.makeScale(r, Math.max(palm ? low[t] + 0.3 : low[t] + half[t] * 0.6, 0.01), r).setPosition(x, y0[t] - 0.3, z)); });
-  const total = lobes.reduce((a, l) => a + l[5].count, 0), pos = new Float32Array(total * 3), uv = new Float32Array(total * 2), col = new Float32Array(total * 3); let o = 0;
-  lobes.forEach(([t, ox, oz, sc, yo, ip], li) => { const [cx, cy, rx, ry] = TREES[t];
-    for (let i = 0; i < ip.count; i++, o++) { const k = 0.86 + 0.28 * rnd(Math.round(ip.getX(i) * 50) + li, Math.round(ip.getY(i) * 50), Math.round(ip.getZ(i) * 50));
-      const sx = ox + ip.getX(i) * k * sc, sy = yo + ip.getY(i) * k * sc, sz = oz + ip.getZ(i) * k * sc, [x, z] = toWorld(cx + sx * rx, cy + sz * ry);
-      pos[o * 3] = x; pos[o * 3 + 1] = y0[t] + low[t] + half[t] * (1 + sy); pos[o * 3 + 2] = z; uv[o * 2] = (cx + sx * rx * 0.62) / DW; uv[o * 2 + 1] = 1 - (cy + sz * ry * 0.62) / DH;
-      const s = 0.55 + 0.45 * Math.min(1, Math.max(0, (sy + 1) / 1.6)); col[o * 3] = col[o * 3 + 1] = col[o * 3 + 2] = s; } });
-  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(pos, 3)); g.setAttribute("uv", new THREE.BufferAttribute(uv, 2)); g.setAttribute("color", new THREE.BufferAttribute(col, 3)); g.computeVertexNormals();
-  treeMesh = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: tex, roughness: 1, vertexColors: true, emissive: 0x0c1807 })); treeMesh.castShadow = treeMesh.receiveShadow = true; trunks.castShadow = true;
-  const pv = [], pc = [], pi = [], F = 13, S = 5;
-  TREES.forEach(([cx, cy, rx, ry, ht, palm], t) => { if (!palm) return; const [x0, z0] = toWorld(cx, cy), L = (rx + ry) / 2 * DPX * 1.05;
-    for (let f = 0; f < F; f++) { const a = f / F * 6.2832 + rnd(t, f, 5) * 0.4, dx = Math.cos(a), dz = Math.sin(a), lift = 0.25 + 0.3 * rnd(t, f, 6), base = pv.length / 3, sh = 0.75 + 0.35 * rnd(t, f, 7);
-      for (let k = 0; k <= S; k++) { const qq = k / S, r = qq * L, w = 0.16 * L * Math.sin(Math.PI * Math.min(1, qq * 0.9 + 0.1)), y = y0[t] + low[t] + L * (lift * qq - 0.75 * qq * qq);
-        for (const sg of [-1, 1]) { pv.push(x0 + dx * r - dz * w * sg, y, z0 + dz * r + dx * w * sg); pc.push(0.30 * sh, 0.46 * sh, 0.20 * sh); } if (k < S) { const v = base + k * 2; pi.push(v, v + 1, v + 2, v + 2, v + 1, v + 3); } } } });
-  const pg = new THREE.BufferGeometry(); pg.setAttribute("position", new THREE.Float32BufferAttribute(pv, 3)); pg.setAttribute("color", new THREE.Float32BufferAttribute(pc, 3)); pg.setIndex(pi); pg.computeVertexNormals();
-  const palms = new THREE.Mesh(pg, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, side: THREE.DoubleSide })); palms.castShadow = true;
-  treeG.add(treeMesh, trunks, palms); scene.add(treeG);
-}
+// ---- structures and planting (models.js): squared-up blocks under their real roofs; leafy crowns in each tree's own colours, shrubs in the scrub, trees on the land around
+const { group: bld, roofM } = buildStructures(STRUCT, { groundY, toPhoto, DW, DH, tex }); scene.add(bld);
+const treeG = buildFlora(FLORA, { groundY, lite, toPhoto, DW, DH, DPX }); scene.add(treeG);
 
 // ---- parcels: thin white boundary with a soft dark under-line, draped on the relief; fill only on hover or selection
 const RES = new THREE.Vector2(innerWidth, innerHeight), lineMats = [];
 const lineMat = (color, width, opacity) => { const m = new LineMaterial({ color, linewidth: width, transparent: true, opacity, depthTest: false, depthWrite: false, fog: false }); m.resolution.copy(RES); lineMats.push(m); return m; };
-const mUnder = lineMat(0x0e140f, 4.2, 0.28), mLine = lineMat(0xffffff, 1.6, 0.95), mGhost = lineMat(0xffffff, 1.2, 0.2), mSel = lineMat(0xffd9a0, 2.6, 1), mMeas = lineMat(0xffd9a0, 2.4, 1);
+const mUnder = lineMat(0x0e140f, 4.2, 0.28), mLine = lineMat(0xffffff, 1.6, 0.95), mGhost = lineMat(0xffffff, 1.2, 0.32), mSel = lineMat(0xffd9a0, 2.6, 1), mMeas = lineMat(0xffd9a0, 2.4, 1);
 for (const m of [mUnder, mLine]) { m.depthTest = true; m.polygonOffset = true; m.polygonOffsetFactor = -2; m.polygonOffsetUnits = -8; }   // these sit in the scene: a boundary behind a tree is hidden by it, so it reads as lying on the ground
 function drape(ring, close = true, lift = 0.8) { const out = [], n = ring.length, m = close ? n : n - 1;
   for (let i = 0; i < m; i++) { const [x, z] = ring[i], [x2, z2] = ring[(i + 1) % n], steps = Math.max(1, Math.ceil(Math.hypot(x2 - x, z2 - z) / 6)); for (let s = 0; s < steps; s++) { const px = x + (x2 - x) * s / steps, pz = z + (z2 - z) * s / steps; out.push(px, groundY(px, pz) + lift, pz); } }
@@ -274,7 +231,7 @@ function select(p, fly = true) { if (selP) { selP.sel.visible = false; selP.fill
 $("plist").innerHTML = parcels.map(p => `<button data-id="${p.id}"><span>Parcel ${p.id}</span><span>${fmtAc(p.m2)} ac</span></button>`).join("");
 $("plist").onclick = e => { const b = e.target.closest("button"); if (b) select(parcels.find(p => p.id === b.dataset.id)); };
 $("plist-h").onclick = () => $("brand").classList.toggle("open"); document.querySelector("#card .x").onclick = () => select(null);
-$("s-ac").textContent = (parcels.reduce((a, p) => a + p.m2, 0) / AC).toFixed(1); $("s-pc").textContent = parcels.length; $("s-st").textContent = BLD.length;
+$("s-ac").textContent = (parcels.reduce((a, p) => a + p.m2, 0) / AC).toFixed(1); $("s-pc").textContent = parcels.length; $("s-st").textContent = new Set(STRUCT.map(s => s.g)).size;
 
 // ---- measuring
 let mode = null, mPts = [], mLive = null, mLab = null; const measG = new THREE.Group(); overlay.add(measG); const dots = [];
@@ -350,8 +307,8 @@ renderer.setAnimationLoop(() => {
 $("load").style.opacity = 0; setTimeout(() => $("load").remove(), 900); window.__ready = true;
 
 // sharper ground on capable desktops: swap in the 6,720 px photo once everything is up
-if (!lite && renderer.capabilities.maxTextureSize >= 8192 && q.get("uhd") !== "0") setTimeout(() => level === 2 && texLoader.loadAsync("tex_uhd.webp").then(t => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = maxAniso; for (const m of [ground.material, roofM, treeMesh.material]) { m.map = t; m.needsUpdate = true; } tex.dispose(); tex = t; dirty = true; }).catch(() => {}), 7000);   // only machines that kept full quality through the opening move
-window.__q = () => level; if (q.has("dbg")) window.__dbg = { scene, renderer, treeG, bld, ground, sun, overlay, labs };
+if (!lite && renderer.capabilities.maxTextureSize >= 8192 && q.get("uhd") !== "0") setTimeout(() => level === 2 && texLoader.loadAsync("tex_uhd.webp").then(t => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = maxAniso; for (const m of [ground.material, roofM]) { m.map = t; m.needsUpdate = true; } tex.dispose(); tex = t; dirty = true; }).catch(() => {}), 7000);   // only machines that kept full quality through the opening move
+window.__q = () => level; if (q.has("dbg")) window.__dbg = { scene, renderer, treeG, bld, ground, sun, overlay, labs, camera, controls, CX, CZ };
 </script>
 </body>
 </html>
