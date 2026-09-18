@@ -6,7 +6,7 @@
    "properties": {
     "id": "01",
     "area_m2": 26886,
-    "source": "edited in the site-model page, 2026-09-18T16:17:31.269Z"
+    "source": "edited in the site-model page, 2026-09-18T18:28:48.889Z"
    },
    "geometry": {
     "type": "Polygon",
@@ -60,8 +60,8 @@
    "type": "Feature",
    "properties": {
     "id": "02",
-    "area_m2": 5026,
-    "source": "edited in the site-model page, 2026-09-18T16:17:31.269Z"
+    "area_m2": 5027,
+    "source": "edited in the site-model page, 2026-09-18T18:28:48.889Z"
    },
    "geometry": {
     "type": "Polygon",
@@ -100,7 +100,7 @@
    "properties": {
     "id": "03",
     "area_m2": 17390,
-    "source": "edited in the site-model page, 2026-09-18T16:17:31.269Z"
+    "source": "edited in the site-model page, 2026-09-18T18:28:48.889Z"
    },
    "geometry": {
     "type": "Polygon",
@@ -171,7 +171,7 @@
    "properties": {
     "id": "04",
     "area_m2": 10969,
-    "source": "edited in the site-model page, 2026-09-18T16:17:31.269Z"
+    "source": "edited in the site-model page, 2026-09-18T18:28:48.889Z"
    },
    "geometry": {
     "type": "Polygon",
@@ -229,8 +229,8 @@
    "type": "Feature",
    "properties": {
     "id": "05",
-    "area_m2": 13024,
-    "source": "edited in the site-model page, 2026-09-18T16:17:31.269Z"
+    "area_m2": 13023,
+    "source": "edited in the site-model page, 2026-09-18T18:28:48.889Z"
    },
    "geometry": {
     "type": "Polygon",
@@ -296,8 +296,8 @@
    "type": "Feature",
    "properties": {
     "id": "06",
-    "area_m2": 17372,
-    "source": "edited in the site-model page, 2026-09-18T16:17:31.269Z"
+    "area_m2": 17373,
+    "source": "edited in the site-model page, 2026-09-18T18:28:48.889Z"
    },
    "geometry": {
     "type": "Polygon",
@@ -383,8 +383,8 @@
    "type": "Feature",
    "properties": {
     "id": "07",
-    "area_m2": 32029,
-    "source": "edited in the site-model page, 2026-09-18T16:17:31.269Z"
+    "area_m2": 32406,
+    "source": "edited in the site-model page, 2026-09-18T18:28:48.889Z"
    },
    "geometry": {
     "type": "Polygon",
@@ -419,12 +419,20 @@
        12.813576
       ],
       [
-       77.850977,
-       12.813687
+       77.8509891,
+       12.8136299
       ],
       [
-       77.850922,
-       12.814105
+       77.8509917,
+       12.8136818
+      ],
+      [
+       77.8510298,
+       12.8139065
+      ],
+      [
+       77.8509602,
+       12.8141114
       ],
       [
        77.850897,
@@ -446,16 +454,16 @@
    "type": "Feature",
    "properties": {
     "id": "09",
-    "area_m2": 37847,
-    "source": "edited in the site-model page, 2026-09-18T16:17:31.269Z"
+    "area_m2": 66077,
+    "source": "edited in the site-model page, 2026-09-18T18:28:48.889Z"
    },
    "geometry": {
     "type": "Polygon",
     "coordinates": [
      [
       [
-       77.850997,
-       12.813272
+       77.8509532,
+       12.8132495
       ],
       [
        77.849748,
@@ -510,32 +518,64 @@
        12.812023
       ],
       [
-       77.8503527,
-       12.8120278
+       77.8503411,
+       12.8120185
       ],
       [
-       77.850648,
-       12.81205
+       77.8506268,
+       12.8120121
       ],
       [
-       77.850668,
-       12.812042
+       77.8506969,
+       12.8119876
       ],
       [
-       77.851098,
-       12.812041
+       77.8507244,
+       12.8119139
       ],
       [
-       77.851106,
-       12.812719
+       77.8508433,
+       12.811906
       ],
       [
-       77.85106,
-       12.812728
+       77.8508327,
+       12.811786
       ],
       [
-       77.850997,
-       12.813272
+       77.8515695,
+       12.8118053
+      ],
+      [
+       77.8519171,
+       12.8118519
+      ],
+      [
+       77.8520341,
+       12.8119253
+      ],
+      [
+       77.8520844,
+       12.8120621
+      ],
+      [
+       77.8515943,
+       12.8145087
+      ],
+      [
+       77.851231,
+       12.814565
+      ],
+      [
+       77.850858,
+       12.814607
+      ],
+      [
+       77.8510298,
+       12.8139065
+      ],
+      [
+       77.8509532,
+       12.8132495
       ]
      ]
     ]
@@ -546,7 +586,7 @@
    "properties": {
     "id": "13",
     "area_m2": 7445,
-    "source": "edited in the site-model page, 2026-09-18T16:17:31.269Z"
+    "source": "edited in the site-model page, 2026-09-18T18:28:48.889Z"
    },
    "geometry": {
     "type": "Polygon",
@@ -589,7 +629,7 @@
    "properties": {
     "id": "14",
     "area_m2": 4272,
-    "source": "edited in the site-model page, 2026-09-18T16:17:31.269Z"
+    "source": "edited in the site-model page, 2026-09-18T18:28:48.889Z"
    },
    "geometry": {
     "type": "Polygon",
