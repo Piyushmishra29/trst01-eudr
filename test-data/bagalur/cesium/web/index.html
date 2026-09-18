@@ -27,27 +27,25 @@
   .lbl { font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mute); margin:8px 0 5px; }
   #card.min > :not(.eyebrow) { display:none; }
   #note { font-size:11px; color:var(--mute); margin:6px 0 0; }
-  #split { position:fixed; top:0; bottom:0; width:3px; background:#fff; left:50%; z-index:4; cursor:ew-resize; box-shadow:0 0 0 1px rgba(0,0,0,.35); touch-action:none; }
-  #split::after { content:"◂ ▸"; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:#fff; color:#111; font-size:12px; padding:9px 7px; border-radius:999px; white-space:nowrap; }
-  #split .tag { position:absolute; top:calc(env(safe-area-inset-top) + 14px); font-size:11px; letter-spacing:.1em; text-transform:uppercase; background:rgba(0,0,0,.6); padding:4px 8px; border-radius:6px; white-space:nowrap; }
-  #split .l { right:12px; color:var(--acc); } #split .r { left:12px; }
+  #swap { position:fixed; left:50%; top:calc(env(safe-area-inset-top) + 14px); transform:translateX(-50%); z-index:5; padding:9px 16px; font-size:13px; font-weight:600; background:var(--panel); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); white-space:nowrap; }
+  #swap.sat { background:#fff; color:#111; }
   #info { position:fixed; right:14px; top:14px; width:280px; max-width:calc(100vw - 28px); background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px 14px; z-index:6; display:none; backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); }
   #info h2 { font-size:15px; margin:0 0 6px; padding-right:18px; } #info dl { margin:0; display:grid; grid-template-columns:auto 1fr; gap:3px 12px; font-size:12.5px; } #info dt { color:var(--mute); } #info dd { margin:0; text-align:right; font-variant-numeric:tabular-nums; }
   #info .x { position:absolute; right:10px; top:8px; background:none; border:0; color:var(--mute); font-size:18px; cursor:pointer; }
   #cap { position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom) + 34px); transform:translateX(-50%); width:min(560px,calc(100vw - 28px)); background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px 14px; z-index:6; display:none; backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); }
   #cap b { display:block; font-size:15px; margin-bottom:2px; } #cap span { color:var(--mute); font-size:13px; } #cap .nav { display:flex; gap:6px; margin-top:9px; align-items:center; } #cap .dots { flex:1; color:var(--mute); font-size:12px; }
   #meas { position:fixed; left:50%; top:14px; transform:translateX(-50%); background:var(--acc); color:#1b1a10; border-radius:999px; padding:7px 14px; font-weight:600; font-size:13px; z-index:6; display:none; white-space:nowrap; }
-  @media (max-width:640px) { #card { width:calc(100vw - 28px); } h1 { font-size:19px; } #info { top:auto; bottom:calc(env(safe-area-inset-bottom) + 34px); right:14px; } #meas { top:auto; bottom:calc(env(safe-area-inset-bottom) + 34px); } }
+  @media (max-width:640px) { #swap { top:auto; bottom:calc(env(safe-area-inset-bottom) + 150px); font-size:12px; } #card { width:calc(100vw - 28px); } h1 { font-size:19px; } #info { top:auto; bottom:calc(env(safe-area-inset-bottom) + 34px); right:14px; } #meas { top:auto; bottom:calc(env(safe-area-inset-bottom) + 34px); } }
 </style>
 </head>
 <body>
 <div id="map"></div>
-<div id="split"><span class="tag l">Our drone · 6 cm</span><span class="tag r">Satellite · 50 cm</span></div>
+<button id="swap" class="chip"></button>
 
 <div id="card">
   <div class="eyebrow"><span>Drone plot mapping · EUDR</span><button id="min" aria-label="Collapse">–</button></div>
   <h1>See the farm, not a blur.</h1>
-  <p>One drone photo of a farm at Bagalur, mapped. Drag the white line to compare it with the satellite image everyone else works from.</p>
+  <p>One drone photo of a farm at Bagalur, mapped. Tap the button at the top to switch to the satellite image everyone else works from.</p>
   <div class="stats">
     <div class="stat"><b id="s-gsd">6 cm</b><span>per pixel</span></div>
     <div class="stat"><b id="s-plots">14</b><span>plots, 21 ha</span></div>
@@ -58,7 +56,7 @@
   <div class="lbl">Show</div>
   <div class="row" id="layers">
     <button class="chip on" data-l="plots">EUDR plots</button><button class="chip on" data-l="blocks">Mango / areca</button><button class="chip on" data-l="trees">Trees</button>
-    <button class="chip on" data-l="buildings">Buildings</button><button class="chip on" data-l="pois">Notes</button><button class="chip on" data-l="swipe">Compare line</button>
+    <button class="chip on" data-l="buildings">Buildings</button><button class="chip on" data-l="pois">Notes</button>
   </div>
   <div class="lbl">Measure</div>
   <div class="row"><button class="chip" id="m-dist">Distance</button><button class="chip" id="m-area">Area</button><button class="chip" id="m-clear">Clear</button></div>
@@ -83,17 +81,13 @@ const viewer = new C.Viewer("map", {
 const scene = viewer.scene; scene.globe.depthTestAgainstTerrain = true; scene.skyAtmosphere.show = true; scene.fog.enabled = true;
 viewer.cesiumWidget.screenSpaceEventHandler.removeInputAction(C.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
 const drone = viewer.imageryLayers.addImageryProvider(await C.IonImageryProvider.fromAssetId(ION.drone));
-drone.splitDirection = C.SplitDirection.LEFT; drone.contrast = 1.18; drone.saturation = 1.25; drone.gamma = 0.92;   // lift the haze of a 350 m photo
+drone.contrast = 1.18; drone.saturation = 1.25; drone.gamma = 0.92;   // lift the haze of a 350 m photo
 
-// ---- compare line
-const split = document.getElementById("split"); let swipeOn = true;
-function setSplit(f) { f = Math.min(0.97, Math.max(0.03, f)); split.style.left = f * 100 + "%"; scene.splitPosition = f; scene.requestRender(); }
-setSplit(0.5);
-let drag = false;
-split.addEventListener("pointerdown", e => { drag = true; split.setPointerCapture(e.pointerId); });
-split.addEventListener("pointermove", e => { if (drag) setSplit(e.clientX / innerWidth); });
-split.addEventListener("pointerup", () => drag = false);
-function swipe(on) { swipeOn = on; document.querySelector('[data-l="swipe"]').classList.toggle("on", on); split.style.display = on ? "" : "none"; drone.splitDirection = on ? C.SplitDirection.LEFT : C.SplitDirection.NONE; scene.requestRender(); }
+// ---- one button: our drone photo or the satellite image
+const swap = document.getElementById("swap");
+function swipe(on) { drone.show = on; swap.classList.toggle("sat", !on); swap.textContent = on ? "Our drone · 6 cm  ⇄  show satellite" : "Satellite · 50 cm  ⇄  show our drone"; scene.requestRender(); }
+swap.onclick = () => swipe(!drone.show);
+swipe(true);
 
 // ---- layers
 const L = { plots: [], blocks: [], pois: [] }; let treePrims = [];
@@ -151,7 +145,6 @@ DATA.trees.forEach((t, i) => {
 treePrims = [crowns, trunks].map(gi => scene.primitives.add(new C.Primitive({ geometryInstances: gi, appearance: new C.PerInstanceColorAppearance({ flat: false, translucent: false }), asynchronous: true, shadows: C.ShadowMode.ENABLED })));
 
 function show(name, on) {
-  if (name === "swipe") return swipe(on);
   if (name === "trees") treePrims.forEach(p => p.show = on); else if (name === "buildings") bPrim.show = on; else L[name].forEach(e => e.show = on);
   scene.requestRender();
 }
@@ -199,11 +192,11 @@ handler.setInputAction(() => { if (mode) { pts.pop(); finishMeasure(); } }, C.Sc
 // ---- tour
 const B = DATA.blocks, P = DATA.pois, only = (...on) => ["plots", "blocks", "trees", "buildings", "pois"].forEach(l => { const b = document.querySelector(`[data-l="${l}"]`); b.classList.toggle("on", on.includes(l)); show(l, on.includes(l)); });
 const STEPS = [
-  { t: "Same farm, two pictures", s: "Left of the line is one photo from our drone at 6 cm per pixel. Right is the satellite image at about 50 cm. Drag the line.", go: () => { only(); swipe(true); setSplit(0.5); return look(0, -90, 620); } },
-  { t: "14 plots, ready for EUDR", s: `${DATA.stats.plots_ha} ha split into whole plots along tracks and hedges, exported as GeoJSON in WGS84 with 6 decimals, checked for the 4 ha rule and overlaps.`, go: () => { only("plots"); swipe(false); return look(0, -60, 1300); } },
-  { t: "Mango blocks, counted", s: `About ${B.filter(b => b.crop === "mango").reduce((a, b) => a + b.plants, 0)} mango trees across three blocks. Every crown is found by AI on the photo, so counts take minutes, not a field day.`, go: () => { only("blocks", "trees"); swipe(false); return look(-35, -32, 330, at(...B[0].centre)); } },
-  { t: "Areca nut (supari)", s: `Two young areca blocks, about ${B.filter(b => b.crop === "areca").reduce((a, b) => a + b.plants, 0)} plants. Gaps in the grid show up straight away from above.`, go: () => { only("blocks", "trees"); swipe(false); return look(25, -40, 300, at(...B[3].centre)); } },
-  { t: "Buildings and polyhouses", s: `${DATA.stats.buildings} structures outlined automatically, with footprints in square metres. Useful for the farm file and for insurance.`, go: () => { only("buildings", "pois", "trees"); swipe(false); return look(165, -36, 640); } },
+  { t: "Same farm, two pictures", s: "This is one photo from our drone at 6 cm per pixel. Tap the button at the top to see the same farm in the satellite image, at about 50 cm.", go: () => { only(); swipe(true); return look(0, -90, 620); } },
+  { t: "14 plots, ready for EUDR", s: `${DATA.stats.plots_ha} ha split into whole plots along tracks and hedges, exported as GeoJSON in WGS84 with 6 decimals, checked for the 4 ha rule and overlaps.`, go: () => { only("plots"); swipe(true); return look(0, -60, 1300); } },
+  { t: "Mango blocks, counted", s: `About ${B.filter(b => b.crop === "mango").reduce((a, b) => a + b.plants, 0)} mango trees across three blocks. Every crown is found by AI on the photo, so counts take minutes, not a field day.`, go: () => { only("blocks", "trees"); swipe(true); return look(-35, -32, 330, at(...B[0].centre)); } },
+  { t: "Areca nut (supari)", s: `Two young areca blocks, about ${B.filter(b => b.crop === "areca").reduce((a, b) => a + b.plants, 0)} plants. Gaps in the grid show up straight away from above.`, go: () => { only("blocks", "trees"); swipe(true); return look(25, -40, 300, at(...B[3].centre)); } },
+  { t: "Buildings and polyhouses", s: `${DATA.stats.buildings} structures outlined automatically, with footprints in square metres. Useful for the farm file and for insurance.`, go: () => { only("buildings", "pois", "trees"); swipe(true); return look(165, -36, 640); } },
   { t: "Measure anything", s: "Use Distance or Area to check a fence line or a field yourself. Then picture this for your whole estate.", go: () => { only("plots", "blocks", "trees", "buildings", "pois"); swipe(true); return home(); } },
 ];
 let step = -1; const cap = document.getElementById("cap");

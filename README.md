@@ -122,7 +122,7 @@ The middle image is **AI-generated**. It was made from the depth-viewer render (
 
 <img src="docs/img/cesium_compare.jpg" width="820">
 
-The full-resolution photo (6 cm/px) is uploaded to Cesium ion as a tiled imagery layer and shown on the 3D globe over world terrain, with a drag line against Bing satellite imagery. On top of it:
+The full-resolution photo (6 cm/px) is uploaded to Cesium ion as a tiled imagery layer and shown on the 3D globe over world terrain, with one button to switch between the drone photo and Bing satellite imagery. On top of it:
 
 - the 14 whole plots with area, tap for the EUDR details
 - mango and areca nut (supari) blocks with approximate plant counts (one greenness peak per plant)
