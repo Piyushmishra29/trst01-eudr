@@ -5,8 +5,8 @@
    "type": "Feature",
    "properties": {
     "id": "01",
-    "area_m2": 26886,
-    "source": "edited in the site-model page, 2026-09-18T18:28:48.889Z"
+    "area_m2": 26971,
+    "source": "edited in the site-model page, 2026-09-18T18:31:26.354Z"
    },
    "geometry": {
     "type": "Polygon",
@@ -37,6 +37,10 @@
        12.8119684
       ],
       [
+       77.8474287,
+       12.8126157
+      ],
+      [
        77.8473632,
        12.813256
       ],
@@ -61,7 +65,7 @@
    "properties": {
     "id": "02",
     "area_m2": 5027,
-    "source": "edited in the site-model page, 2026-09-18T18:28:48.889Z"
+    "source": "edited in the site-model page, 2026-09-18T18:31:26.354Z"
    },
    "geometry": {
     "type": "Polygon",
@@ -100,7 +104,7 @@
    "properties": {
     "id": "03",
     "area_m2": 17390,
-    "source": "edited in the site-model page, 2026-09-18T18:28:48.889Z"
+    "source": "edited in the site-model page, 2026-09-18T18:31:26.354Z"
    },
    "geometry": {
     "type": "Polygon",
@@ -171,7 +175,7 @@
    "properties": {
     "id": "04",
     "area_m2": 10969,
-    "source": "edited in the site-model page, 2026-09-18T18:28:48.889Z"
+    "source": "edited in the site-model page, 2026-09-18T18:31:26.354Z"
    },
    "geometry": {
     "type": "Polygon",
@@ -230,7 +234,7 @@
    "properties": {
     "id": "05",
     "area_m2": 13023,
-    "source": "edited in the site-model page, 2026-09-18T18:28:48.889Z"
+    "source": "edited in the site-model page, 2026-09-18T18:31:26.354Z"
    },
    "geometry": {
     "type": "Polygon",
@@ -296,16 +300,16 @@
    "type": "Feature",
    "properties": {
     "id": "06",
-    "area_m2": 17373,
-    "source": "edited in the site-model page, 2026-09-18T18:28:48.889Z"
+    "area_m2": 19761,
+    "source": "edited in the site-model page, 2026-09-18T18:31:26.354Z"
    },
    "geometry": {
     "type": "Polygon",
     "coordinates": [
      [
       [
-       77.8487067,
-       12.8129904
+       77.8487298,
+       12.8129963
       ],
       [
        77.8474308,
@@ -328,16 +332,28 @@
        12.811798
       ],
       [
-       77.847566,
-       12.8116805
+       77.8475807,
+       12.811279
       ],
       [
-       77.848292,
-       12.811732
+       77.8477652,
+       12.8113227
       ],
       [
-       77.848417,
-       12.8117686
+       77.8479647,
+       12.8114591
+      ],
+      [
+       77.8482036,
+       12.8116447
+      ],
+      [
+       77.8483271,
+       12.811696
+      ],
+      [
+       77.8484366,
+       12.8117722
       ],
       [
        77.8484953,
@@ -372,8 +388,8 @@
        12.8129088
       ],
       [
-       77.8487067,
-       12.8129904
+       77.8487298,
+       12.8129963
       ]
      ]
     ]
@@ -384,7 +400,7 @@
    "properties": {
     "id": "07",
     "area_m2": 32406,
-    "source": "edited in the site-model page, 2026-09-18T18:28:48.889Z"
+    "source": "edited in the site-model page, 2026-09-18T18:31:26.354Z"
    },
    "geometry": {
     "type": "Polygon",
@@ -454,8 +470,8 @@
    "type": "Feature",
    "properties": {
     "id": "09",
-    "area_m2": 66077,
-    "source": "edited in the site-model page, 2026-09-18T18:28:48.889Z"
+    "area_m2": 66467,
+    "source": "edited in the site-model page, 2026-09-18T18:31:26.354Z"
    },
    "geometry": {
     "type": "Polygon",
@@ -494,12 +510,24 @@
        12.8123459
       ],
       [
-       77.8486174,
-       12.8122292
+       77.8486041,
+       12.812246
       ],
       [
-       77.848592,
-       12.8120238
+       77.8485736,
+       12.8121135
+      ],
+      [
+       77.8485649,
+       12.8120622
+      ],
+      [
+       77.8486162,
+       12.8119899
+      ],
+      [
+       77.8491678,
+       12.8119521
       ],
       [
        77.8496902,
@@ -586,7 +614,7 @@
    "properties": {
     "id": "13",
     "area_m2": 7445,
-    "source": "edited in the site-model page, 2026-09-18T18:28:48.889Z"
+    "source": "edited in the site-model page, 2026-09-18T18:31:26.354Z"
    },
    "geometry": {
     "type": "Polygon",
@@ -629,7 +657,7 @@
    "properties": {
     "id": "14",
     "area_m2": 4272,
-    "source": "edited in the site-model page, 2026-09-18T18:28:48.889Z"
+    "source": "edited in the site-model page, 2026-09-18T18:31:26.354Z"
    },
    "geometry": {
     "type": "Polygon",
