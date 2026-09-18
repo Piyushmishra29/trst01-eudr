@@ -85,7 +85,7 @@ The share links are view-only. The WebODM dashboard at the same host still needs
 
 <img src="docs/img/ai3d_drone_vs_satellite.jpg" width="820">
 
-**Live:** https://b650-3070.tail641fa8.ts.net:10000/ (no login, served from the desktop over Tailscale Funnel)
+**Live:** https://pi-vps-mumbai-8gb.tail641fa8.ts.net/bagalur-3d/ (no login, hosted on the Mumbai VPS, always on; update with `rsync -az --delete test-data/bagalur/ai3d/web/ root@100.77.25.115:/srv/bagalur-3d/`)
 
 Depth Anything V2 (Large, run locally on the RTX 3070) estimates a height for every pixel of DJI_0995 (350 m, straight down). The large-scale tilt the model adds is removed. The result is draped with the photo in a three.js viewer: orbit, zoom, change the height and the sun.
 
