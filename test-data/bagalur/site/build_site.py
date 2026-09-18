@@ -1,5 +1,7 @@
 """Data + textures for the site-model page (web/): parcels in the viewer's world metres, points of interest, and the dehazed photo at three sizes."""
 import json, numpy as np, cv2
+from PIL import Image
+def webp(path, bgr, q): Image.fromarray(cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)).save(path, "WEBP", quality=q, method=6)
 from pyproj import Transformer
 from shapely.geometry import Polygon
 AL = json.load(open("../ai3d/web/align.json")); S = json.load(open("../ai3d/web/seam.json")); A = np.array(AL["A"]); D = np.array(S["d"], float); GX, GY = S["gx"], S["gy"]
@@ -19,7 +21,6 @@ json.dump(dict(parcels=parcels, pois=pois, surveyed_m2=round(Polygon([world_px(*
 print(len(parcels), "parcels", sum(p["m2"] for p in parcels) / 1e4, "ha")
 im = cv2.imread("../cesium/work/DJI_0995_enh.png")                                  # enhance.py output (8064 x 6048)
 im = (np.clip((im.astype(np.float32) / 255) ** 0.8 * 0.94 + 0.05, 0, 1) * 255).astype(np.uint8)      # open the shadows a little: the 3D scene adds its own shading on top
-for tag, w, q in (("uhd", 6720, 86), ("hd", 4032, 88), ("sd", 2016, 86)): cv2.imwrite(f"web/tex_{tag}.jpg", cv2.resize(im, (w, w * 3 // 4), interpolation=cv2.INTER_AREA), [cv2.IMWRITE_JPEG_QUALITY, q])
 
 # ---------- seamless edge: the satellite is another day, season and camera, so the surveyed rectangle reads as a box unless the colours meet
 sat = cv2.imread("../ai3d/web/sat_hd.jpg"); k = sat.shape[1] / SW                       # satellite block, maybe stored smaller than its nominal grid
@@ -32,14 +33,14 @@ dr = cv2.resize(im, (w, h), interpolation=cv2.INTER_AREA); lab = lambda x: cv2.c
 ls, ld = lab(sat_d).reshape(-1, 3), lab(dr).reshape(-1, 3); gain = ld.std(0) / ls.std(0); gain = np.clip(gain, 0.8, 1.22)
 def tone(x):                                             # 80% of the way: a full match over-cooks fields the drone never saw
     m = cv2.cvtColor(np.clip((lab(x) - ls.mean(0)) * gain + ld.mean(0) - np.array([6, 0, 0]), 0, 255).astype(np.uint8), cv2.COLOR_LAB2BGR); return cv2.addWeighted(m, 0.8, x, 0.2, 0)
-sat_m = tone(sat); cv2.imwrite("web/sat_hd.jpg", sat_m, [cv2.IMWRITE_JPEG_QUALITY, 88]); cv2.imwrite("web/sat_sd.jpg", cv2.resize(sat_m, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_AREA), [cv2.IMWRITE_JPEG_QUALITY, 86])
+sat_m = tone(sat); webp("web/sat_hd.webp", sat_m, 80); webp("web/sat_sd.webp", cv2.resize(sat_m, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_AREA), 78)
 # 2. near the border the drone photo's broad colour (not its detail) eases into the satellite's, so fields carry across the edge
 blur = lambda x, s: cv2.GaussianBlur(x.astype(np.float32), (0, 0), s); diff = blur(tone(sat_d), 22) - blur(dr, 22)
 edge = np.minimum.reduce([uu / DW, 1 - uu / DW, (vv / DH) * 0.75, (1 - vv / DH) * 0.75]) * DW * 0.1228                 # metres to the nearest photo edge
 wgt = np.clip(1 - edge / 70, 0, 1) ** 1.5; corr = diff * wgt[..., None]
-for tag, W_, q_ in (("uhd", 6720, 86), ("hd", 4032, 88), ("sd", 2016, 86)):
+for tag, W_, q_ in (("uhd", 6720, 80), ("hd", 4032, 82), ("sd", 2016, 80)):
     t = cv2.resize(im, (W_, W_ * 3 // 4), interpolation=cv2.INTER_AREA).astype(np.float32) + cv2.resize(corr, (W_, W_ * 3 // 4), interpolation=cv2.INTER_CUBIC)
-    cv2.imwrite(f"web/tex_{tag}.jpg", np.clip(t, 0, 255).astype(np.uint8), [cv2.IMWRITE_JPEG_QUALITY, q_])
+    webp(f"web/tex_{tag}.webp", np.clip(t, 0, 255).astype(np.uint8), q_)
 print("sat tone gain", gain.round(2), "edge blend up to 70 m")
 
 # ---------- wide context (fetch_context.py): same tone as the inner block, so the land carries on to the horizon
@@ -47,4 +48,4 @@ ctx = cv2.imread("work/context.tif")
 if ctx is not None:
     inner = cv2.resize(sat, (500, 375), interpolation=cv2.INTER_AREA); c0 = ctx[2000 - 187:2000 + 188, 2000 - 250:2000 + 250]        # the inner block's place in the 4 m grid
     a_, b_ = lab(c0).reshape(-1, 3), lab(inner).reshape(-1, 3); ctx_l = (lab(ctx) - a_.mean(0)) * np.clip(b_.std(0) / a_.std(0), 0.8, 1.25) + b_.mean(0)      # first onto the inner block's own tone (different tile dates)
-    cv2.imwrite("web/context.jpg", tone(cv2.cvtColor(np.clip(ctx_l, 0, 255).astype(np.uint8), cv2.COLOR_LAB2BGR)), [cv2.IMWRITE_JPEG_QUALITY, 84]); print("context written")
+    webp("web/context.webp", cv2.resize(tone(cv2.cvtColor(np.clip(ctx_l, 0, 255).astype(np.uint8), cv2.COLOR_LAB2BGR)), (3072, 3072), interpolation=cv2.INTER_AREA), 72); print("context written")

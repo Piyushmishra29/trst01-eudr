@@ -80,10 +80,10 @@
 <div id="foot">Boundaries indicative · heights estimated from imagery · surrounding imagery © Esri, Maxar, Earthstar Geographics · survey by The Drone Agency</div>
 
 <script>addEventListener("error",e=>{window.__err=(e.message||"")+" @"+e.lineno});addEventListener("unhandledrejection",e=>{window.__err="rej: "+(e.reason&&e.reason.stack||e.reason)});</script>
-<script type="importmap">{ "imports": { "three": "./a/three.module.js" } }</script>
+<script type="importmap">{ "imports": { "three": "./three.module.min.js" } }</script>
 <script type="module">
 import * as THREE from "three";
-import { OrbitControls } from "./a/OrbitControls.js";
+import { OrbitControls } from "./jsm/OrbitControls.js";
 import { Line2 } from "./jsm/lines/Line2.js";
 import { LineGeometry } from "./jsm/lines/LineGeometry.js";
 import { LineMaterial } from "./jsm/lines/LineMaterial.js";
@@ -100,7 +100,7 @@ let dirty = true; const PAPER = 0xece9e3, EX = 10, LIFT = 1.32;                 
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setSize(innerWidth, innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.NeutralToneMapping; renderer.toneMappingExposure = 1.0;
-renderer.shadowMap.enabled = true; renderer.shadowMap.type = lite ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
+renderer.shadowMap.enabled = true; renderer.shadowMap.autoUpdate = false; const reshadow = () => { renderer.shadowMap.needsUpdate = true; dirty = true; }; renderer.shadowMap.type = lite ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
 document.body.prepend(renderer.domElement);
 
 const scene = new THREE.Scene(), overlay = new THREE.Scene();   // overlay: boundaries and measurements, drawn crisp on top after the post-processing
@@ -139,18 +139,17 @@ const groundY = (x, z) => gAt(...toPhoto(x, z)) * EX;
 function fadeTex(draw, w = 512, h = 384) { const c = document.createElement("canvas"); c.width = w; c.height = h; draw(c.getContext("2d"), w, h); const t = new THREE.CanvasTexture(c); return t; }
 const tag = lite ? "sd" : "hd";
 $("load-t").textContent = "Loading imagery";
-const [hImg, satImg, tex0, ctxTex] = await Promise.all([loadImg(`a/height_${tag}.png`), loadImg(`sat_${tag}.jpg`), texLoader.loadAsync(`tex_${tag}.jpg`), texLoader.loadAsync("context.jpg")]);
+const [hImg, st, tex0] = await Promise.all([loadImg("a/height_sd.png"), texLoader.loadAsync(`sat_${tag}.webp`), texLoader.loadAsync(`tex_${tag}.webp`)]);
 const maxAniso = Math.min(16, renderer.capabilities.getMaxAnisotropy()); let tex = tex0; tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = maxAniso;
 { // satellite, already toned to the drone photo (build_site.py) so the two read as one landscape
-  const c = document.createElement("canvas"); c.width = satImg.width; c.height = satImg.height; const x = c.getContext("2d"); x.filter = "saturate(.9)"; x.drawImage(satImg, 0, 0);
-  const st = new THREE.CanvasTexture(c); st.colorSpace = THREE.SRGBColorSpace; st.anisotropy = maxAniso;
+  st.colorSpace = THREE.SRGBColorSpace; st.anisotropy = maxAniso;
   const alpha = fadeTex((g, w, h) => { const r = g.createRadialGradient(w / 2, h / 2, h * 0.30, w / 2, h / 2, h * 0.56); r.addColorStop(0, "#fff"); r.addColorStop(1, "#000"); g.fillStyle = r; g.save(); g.translate(w / 2, h / 2); g.scale(1.25, 1); g.translate(-w / 2, -h / 2); g.fillRect(-w, -h, w * 3, h * 3); g.restore(); });
   const sat = new THREE.Mesh(new THREE.PlaneGeometry(SW * SPX, SH * SPX).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ map: st, alphaMap: alpha, transparent: true, roughness: 1, depthWrite: false })); sat.material.color.setScalar(LIFT);
   // wide context, 16 km across at 4 m/px: the land runs on to a hazy horizon instead of stopping at the block
-  ctxTex.colorSpace = THREE.SRGBColorSpace; ctxTex.anisotropy = maxAniso;
   const far = fadeTex((g, w, h) => { const r = g.createRadialGradient(w / 2, h / 2, h * 0.34, w / 2, h / 2, h * 0.5); r.addColorStop(0, "#fff"); r.addColorStop(1, "#000"); g.fillStyle = r; g.fillRect(0, 0, w, h); }, 512, 512);
-  const ctx = new THREE.Mesh(new THREE.PlaneGeometry(16000, 16000).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ map: ctxTex, alphaMap: far, transparent: true, roughness: 1, depthWrite: false }));
-  ctx.material.color.setScalar(LIFT); ctx.position.y = -1.6; ctx.renderOrder = -3; ctx.receiveShadow = false; scene.add(ctx);
+  const ctx = new THREE.Mesh(new THREE.PlaneGeometry(16000, 16000).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x9a8f7c, alphaMap: far, transparent: true, roughness: 1, depthWrite: false }));   // earth tone until the image arrives
+  texLoader.loadAsync("context.webp").then(t => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = maxAniso; ctx.material.map = t; ctx.material.color.setScalar(LIFT); ctx.material.needsUpdate = true; dirty = true; }).catch(() => {});
+  ctx.position.y = -1.6; ctx.renderOrder = -3; ctx.receiveShadow = false; scene.add(ctx);
   sat.position.y = -0.5; sat.receiveShadow = true; sat.renderOrder = -2; scene.add(sat);
 }
 const c = document.createElement("canvas"); c.width = hw = hImg.width; c.height = hh = hImg.height; const cx2 = c.getContext("2d", { willReadFrequently: true }); cx2.drawImage(hImg, 0, 0);
@@ -256,7 +255,7 @@ const views = { oblique: [[-250, 300, 520], [0, 0, 20]], top: [[0, 900, 1], [0, 
 function go(v, ms) { const [p, t] = views[v], k = portrait() ? 1.7 : 1; flyTo(new THREE.Vector3(CX + p[0] * k, p[1] * k, CZ + p[2] * k), new THREE.Vector3(CX + t[0], t[1], CZ + t[2]), ms); }
 const orbitBtn = document.querySelector('[data-a="orbit"]');
 function startOrbit() { controls.autoRotate = true; controls.autoRotateSpeed = 0.45; orbitBtn.classList.add("on"); } function stopOrbit() { controls.autoRotate = false; orbitBtn.classList.remove("on"); }
-function setSun(deg) { const r = THREE.MathUtils.degToRad(deg); sun.position.set(CX + Math.cos(r) * 300, 250, CZ + Math.sin(r) * 300); sun.target.position.set(CX, 0, CZ); dirty = true; }
+function setSun(deg) { const r = THREE.MathUtils.degToRad(deg); sun.position.set(CX + Math.cos(r) * 300, 250, CZ + Math.sin(r) * 300); sun.target.position.set(CX, 0, CZ); reshadow(); }
 
 // ---- parcel card and list
 let selP = null, hovP = null;
@@ -299,16 +298,26 @@ $("bar").onclick = e => { const b = e.target.closest("button"); if (!b) return; 
   else if (a === "layers") { const p = $("pop"); p.style.display = p.style.display === "block" ? "none" : "block"; b.classList.toggle("on", p.style.display === "block"); }
   else if (a === "share") { const r = n => Math.round(n), u = new URL(location.href); u.search = ""; u.searchParams.set("cam", [camera.position.x - CX, camera.position.y, camera.position.z - CZ, controls.target.x - CX, controls.target.y, controls.target.z - CZ].map(r).join(",")); if (selP) u.searchParams.set("parcel", selP.id);
     (navigator.clipboard?.writeText(u.href) || Promise.reject()).then(() => toast("Link to this view copied"), () => prompt("Copy this link", u.href)); } dirty = true; };
-$("pop").addEventListener("change", e => { const l = e.target.dataset.l; if (!l) return; const on = e.target.checked; if (l === "parcels") parcelG.visible = on; else if (l === "labels") showLabels = on; else if (l === "trees") treeG.visible = on; else if (l === "structures") bld.visible = on; dirty = true; });
+$("pop").addEventListener("change", e => { const l = e.target.dataset.l; if (!l) return; const on = e.target.checked; if (l === "parcels") parcelG.visible = on; else if (l === "labels") showLabels = on; else if (l === "trees") { treeG.visible = on; reshadow(); } else if (l === "structures") { bld.visible = on; reshadow(); } dirty = true; });
 $("sun").addEventListener("input", e => setSun(+e.target.value));
 
 // ---- post: soft contact shading where trees and buildings meet the ground (desktop), then tone mapping
-let composer = null;
+let composer = null, ao = null;
 if (!lite) { const rt = new THREE.WebGLRenderTarget(1, 1, { samples: 4, type: THREE.HalfFloatType }); composer = new EffectComposer(renderer, rt); composer.addPass(new RenderPass(scene, camera));
-  const ao = new GTAOPass(scene, camera, innerWidth, innerHeight); ao.blendIntensity = 0.85; ao.updateGtaoMaterial({ radius: 7, distanceExponent: 1.4, thickness: 2.2, scale: 1.15, samples: 16, screenSpaceRadius: false }); ao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 16 });
+  ao = new GTAOPass(scene, camera, innerWidth, innerHeight); ao.blendIntensity = 0.85; ao.updateGtaoMaterial({ radius: 7, distanceExponent: 1.4, thickness: 2.2, scale: 1.15, samples: 16, screenSpaceRadius: false }); ao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 16 });
   composer.addPass(ao); composer.addPass(new OutputPass()); composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(innerWidth, innerHeight); }
 function resize() { camera.aspect = innerWidth / innerHeight; camera.fov = portrait() ? 52 : 36; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); composer?.setSize(innerWidth, innerHeight); RES.set(innerWidth, innerHeight); lineMats.forEach(m => m.resolution.copy(RES)); labs.forEach(l => l.w = 0); dirty = true; }
 addEventListener("resize", resize); addEventListener("orientationchange", () => setTimeout(resize, 200));
+
+// ---- quality follows the machine: 2 = everything, always. 1 = contact shading and full sharpness only once the view rests. 0 = plain render while moving.
+// The page steps down by itself when frames take too long (never back up, so it cannot flicker between levels). ?q=0|1|2 pins a level.
+const DPR = Math.min(devicePixelRatio, 2); let level = q.has("q") ? +q.get("q") : (lite ? 0 : 2), curRes = 0, lastFrame = 0, lastMove = 0, pendingFinal = false; const dts = [];
+function setRes(r) { if (r === curRes) return; curRes = r; renderer.setPixelRatio(r); composer?.setPixelRatio(r); }
+function draw(final) {
+  const post = composer && (level === 2 || (final && level >= 0 && !lite)); setRes(level === 2 || final ? DPR : Math.min(DPR, level === 1 ? 1.25 : 1)); if (ao) ao.enabled = level === 2 || final;
+  if (post) composer.render(); else renderer.render(scene, camera);
+  renderer.autoClear = false; renderer.clearDepth(); renderer.render(overlay, camera); renderer.autoClear = true; layoutLabels();
+}
 
 // ---- start: glide in from high up, then circle slowly until the first touch
 setSun(120);
@@ -318,14 +327,19 @@ else { camera.position.set(CX - 60, 1500, CZ + 900); controls.target.set(CX, 0, 
 controls.addEventListener("change", () => dirty = true); ["input", "click", "resize"].forEach(t => addEventListener(t, () => dirty = true, true)); document.fonts?.ready.then(() => { labs.forEach(l => l.w = 0); dirty = true; });
 renderer.setAnimationLoop(() => {
   if (tween) { const k = Math.min(1, (performance.now() - tween.s) / tween.ms), e = ease(k); camera.position.lerpVectors(tween.p0, tween.p1, e); controls.target.lerpVectors(tween.t0, tween.t1, e); if (k >= 1) tween = null; dirty = true; }
-  if (controls.update() || controls.autoRotate) dirty = true; if (!dirty) return; dirty = false;
-  if (composer) composer.render(); else renderer.render(scene, camera);
-  renderer.autoClear = false; renderer.clearDepth(); renderer.render(overlay, camera); renderer.autoClear = true; layoutLabels();
+  if (controls.update() || controls.autoRotate) dirty = true;
+  const now = performance.now();
+  if (!dirty) { if (pendingFinal && now - lastMove > 220) { pendingFinal = false; draw(true); } lastFrame = 0; return; }
+  dirty = false; lastMove = now; pendingFinal = level < 2;
+  if (lastFrame) { dts.push(now - lastFrame); if (dts.length >= 3 && !q.has("q") && level > 0) { const avg = dts.slice(-10).reduce((a, b) => a + b) / Math.min(10, dts.length), slow3 = dts.slice(-3).every(d => d > 110);
+      if (slow3) { level = 0; dts.length = 0; pendingFinal = true; } else if (dts.length >= 10 && ((level === 2 && avg > 30) || (level === 1 && avg > 48))) { level--; dts.length = 0; pendingFinal = true; } } if (dts.length > 40) dts.shift(); } lastFrame = now;
+  draw(false);
 });
 $("load").style.opacity = 0; setTimeout(() => $("load").remove(), 900); window.__ready = true;
 
 // sharper ground on capable desktops: swap in the 6,720 px photo once everything is up
-if (!lite && renderer.capabilities.maxTextureSize >= 8192 && q.get("uhd") !== "0") texLoader.loadAsync("tex_uhd.jpg").then(t => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = maxAniso; for (const m of [ground.material, roofM, treeMesh.material]) { m.map = t; m.needsUpdate = true; } tex.dispose(); tex = t; dirty = true; });
+if (!lite && renderer.capabilities.maxTextureSize >= 8192 && q.get("uhd") !== "0") setTimeout(() => level === 2 && texLoader.loadAsync("tex_uhd.webp").then(t => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = maxAniso; for (const m of [ground.material, roofM, treeMesh.material]) { m.map = t; m.needsUpdate = true; } tex.dispose(); tex = t; dirty = true; }).catch(() => {}), 7000);   // only machines that kept full quality through the opening move
+window.__q = () => level; if (q.has("dbg")) window.__dbg = { scene, renderer, treeG, bld, ground, sun, overlay, labs };
 </script>
 </body>
 </html>
