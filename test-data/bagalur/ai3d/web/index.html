@@ -83,8 +83,22 @@ let mesh, geo, hts, ex = 10, sat, outline;
 const AL = await (await fetch("align.json")).json();
 const [SW, SH] = AL.sat_size, SPX = AL.sat_px_m, [DW, DH] = AL.drone_size, A = AL.A;
 // drone pixel (u,v) -> world metres (x east, z south), origin = centre of the satellite block
-const toWorld = (u, v) => [((A[0][0] * u + A[0][1] * v + A[0][2]) - SW / 2) * SPX, ((A[1][0] * u + A[1][1] * v + A[1][2]) - SH / 2) * SPX];
+const SEAM = await (await fetch("seam.json")).json();   // correction grid (satellite px) so roads meet the satellite cleanly
+function seamAt(u, v) {   // bilinear sample of the grid at drone pixel (u, v)
+  const fx = Math.min(Math.max(u / DW, 0), 1) * (SEAM.gx - 1), fy = Math.min(Math.max(v / DH, 0), 1) * (SEAM.gy - 1);
+  const x0 = Math.min(Math.floor(fx), SEAM.gx - 2), y0 = Math.min(Math.floor(fy), SEAM.gy - 2), tx = fx - x0, ty = fy - y0, d = SEAM.d;
+  const l = (k) => (d[y0][x0][k] * (1 - tx) + d[y0][x0 + 1][k] * tx) * (1 - ty) + (d[y0 + 1][x0][k] * (1 - tx) + d[y0 + 1][x0 + 1][k] * tx) * ty;
+  return [l(0), l(1)];
+}
+const toWorld = (u, v) => {
+  const [dx, dy] = seamAt(u, v);
+  const X = A[0][0] * u + A[0][1] * v + A[0][2] + dx, Y = A[1][0] * u + A[1][1] * v + A[1][2] + dy;
+  return [(X - SW / 2) * SPX, (Y - SH / 2) * SPX];
+};
 const corners = [[0, 0], [DW, 0], [DW, DH], [0, DH]].map(([u, v]) => toWorld(u, v));
+const edgePts = [];
+for (const [[au, av], [bu, bv]] of [[[0, 0], [DW, 0]], [[DW, 0], [DW, DH]], [[DW, DH], [0, DH]], [[0, DH], [0, 0]]])
+  for (let i = 0; i < 24; i++) edgePts.push(toWorld(au + (bu - au) * i / 24, av + (bv - av) * i / 24));
 const CX = corners.reduce((a, c) => a + c[0], 0) / 4, CZ = corners.reduce((a, c) => a + c[1], 0) / 4;
 
 async function build() {
@@ -117,15 +131,9 @@ async function build() {
   if (sun.shadow.mapSize.x !== sm) { sun.shadow.mapSize.set(sm, sm); sun.shadow.map?.dispose(); sun.shadow.map = null; }
   document.getElementById("hdbtn").classList.toggle("on", hd);
 }
-function addOutline() {   // yellow ribbon around the mapped area
-  const w = 1.6, pts = [];
-  for (let i = 0; i < 4; i++) {
-    const [ax, az] = corners[i], [bx, bz] = corners[(i + 1) % 4];
-    const dx = bx - ax, dz = bz - az, L = Math.hypot(dx, dz), nx = -dz / L * w, nz = dx / L * w;
-    pts.push(ax - nx, 0.8, az - nz, bx - nx, 0.8, bz - nz, bx + nx, 0.8, bz + nz, ax - nx, 0.8, az - nz, bx + nx, 0.8, bz + nz, ax + nx, 0.8, az + nz);
-  }
-  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));
-  outline = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: 0xffd23f, side: THREE.DoubleSide, fog: false, depthTest: false }));
+function addOutline() {   // 1 px yellow line around the mapped area, sharp at any zoom
+  const g = new THREE.BufferGeometry().setFromPoints(edgePts.map(([x, z]) => new THREE.Vector3(x, 0.6, z)));
+  outline = new THREE.LineLoop(g, new THREE.LineBasicMaterial({ color: 0xffd23f, fog: false, depthTest: false, transparent: true, opacity: 0.9 }));
   outline.renderOrder = 10; scene.add(outline);
 }
 function applyHeights() {

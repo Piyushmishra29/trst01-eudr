@@ -89,7 +89,7 @@ The share links are view-only. The WebODM dashboard at the same host still needs
 
 Depth Anything V2 (Large, run locally on the RTX 3070) estimates a height for every pixel of DJI_0995 (350 m, straight down). The large-scale tilt the model adds is removed. The result is draped with the photo in a three.js viewer: orbit, zoom, change the height and the sun.
 
-The photo sits at its true position inside a 2 × 1.5 km block of Esri satellite imagery, outlined in yellow, so the extra detail from the drone (6 cm/px vs about 50 cm/px) is obvious. Placement: DJI_0995 is SIFT-matched to DJI_0001 (already aligned to the satellite), with 1,060 inlier points and a median error of 0.8 m (`align_to_0001.py`). **Wide** shows the whole block.
+The photo sits at its true position inside a 2 × 1.5 km block of Esri satellite imagery, outlined in yellow, so the extra detail from the drone (6 cm/px vs about 50 cm/px) is obvious. Placement: DJI_0995 is SIFT-matched to DJI_0001 (already aligned to the satellite), with 1,060 inlier points and a median error of 0.8 m (`align_to_0001.py`). On top of that, `seam_refine.py` measures the local drone-vs-satellite offset in 75 tiles of 80 m (2.4 m typical, up to 7.4 m, from lens distortion and the camera tilt) and fits a smoothed spline. The viewer applies that spline as a correction grid, so roads run straight across the border: about 0.8 m typical error on held-out tiles. The border is a 1 px line. **Wide** shows the whole block.
 
 <img src="docs/img/ai3d_drone_vs_satellite_wide.jpg" width="820">
 
