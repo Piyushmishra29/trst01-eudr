@@ -116,6 +116,23 @@ Close-up links: add `?cam=x,y,z,tx,ty,tz` (camera and target, metres from the ce
 
 The middle image is **AI-generated**. It was made from the depth-viewer render (angle and layout) plus the real photo (detail), 2 credits. The layout matches the farm, but the trees, walls and background are invented, so it is for pitch visuals only and never for EUDR. The code is in `test-data/bagalur/ai3d/` (`depth.py`, `relief2.py`, `trees.py`, `buildings.py`, `prompt.txt`, `web/`).
 
+### Cesium ion globe: marketing view with annotations (branch `cesium-ion`)
+
+**Live:** https://pi-vps-bombay-16gb.tail641fa8.ts.net/bagalur-map/ (no login, hosted on the Bombay VPS)
+
+<img src="docs/img/cesium_compare.jpg" width="820">
+
+The full-resolution photo (6 cm/px) is uploaded to Cesium ion as a tiled imagery layer and shown on the 3D globe over world terrain, with a drag line against Bing satellite imagery. On top of it:
+
+- the 14 whole plots with area, tap for the EUDR details
+- mango and areca nut (supari) blocks with approximate plant counts (one greenness peak per plant)
+- the 854 trees and 39 buildings in 3D, a few notes (polyhouses, sheds, ponds, solar roof)
+- distance and area measuring, and a 6-step guided tour (`?tour=1` to `?tour=6` link straight to a step)
+
+<img src="docs/img/cesium_tour.jpg" width="820">
+
+Code is in `test-data/bagalur/cesium/`: `geo.py` (photo pixel to lon/lat with the viewer's alignment), `make_geotiff.py`, `ion_upload.py`, `build_data.py`, `web/`. The page uses a read-only ion token that only opens terrain, Bing imagery and the drone layer, and only from the Bombay host. The admin token stays in `~/.config/cesium/ion-token` and is never published. **Cesium ion's free plan is for non-commercial use**: move to a paid plan before using this page to sell.
+
 ---
 
 ## Tools

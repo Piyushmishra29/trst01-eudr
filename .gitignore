@@ -38,3 +38,5 @@ test-data/bagalur/ai3d/sat/
 
 # local tool logs
 .gstack/
+!test-data/bagalur/cesium/
+test-data/bagalur/cesium/work/

@@ -1,0 +1,2 @@
+// read-only Cesium ion token: only terrain, Bing imagery and the drone layer, only from this site's host
+window.ION = { token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJub25jZSI6Im16WEtJUjZjUGVVdlE0cF8iLCJqdGkiOiI1YjdlNWE1Zi1kNDdiLTRmZDYtYTNlYS00NmIyNzU1YzU4OGEiLCJpZCI6NDk5OTk1LCJzdWIiOiJQaXl1c2htaXNocmEyOSIsImlzcyI6Imh0dHBzOi8vYXBpLmNlc2l1bS5jb20iLCJhdWQiOiJiYWdhbHVyLW1hcCBwdWJsaWMgcGFnZSAocmVhZC1vbmx5KSIsImlhdCI6MTc4OTczNjYxMn0.1gOgK_xSU9-ophEiO7-mDtmWX-Rpc6mPSfKbg8eaSWg", drone: 5894791 };

@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Bagalur farm map: drone vs satellite</title>
+<meta name="description" content="One drone photo, mapped: 14 EUDR-ready plots, mango and areca blocks, 854 trees and 39 buildings, on a 3D globe.">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cesium@1.124.0/Build/Cesium/Widgets/widgets.css">
+<style>
+  :root { --ink:#0d1411; --panel:rgba(13,20,17,.84); --fg:#eef2ec; --mute:#a3b0a6; --line:rgba(255,255,255,.12); --acc:#ffd23f; --mango:#ff9f3f; --areca:#3fd6b8; }
+  * { box-sizing:border-box; }
+  html,body,#map { margin:0; height:100%; background:var(--ink); color:var(--fg); font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif; overflow:hidden; }
+  .cesium-viewer-bottom { opacity:.75; }
+  #card { position:fixed; left:14px; top:14px; width:340px; max-width:calc(100vw - 28px); background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px 16px 12px; backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); z-index:5; }
+  .eyebrow { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--acc); display:flex; justify-content:space-between; align-items:center; }
+  #min { background:none; border:0; color:var(--mute); font-size:20px; line-height:1; cursor:pointer; padding:0 2px; }
+  h1 { font-size:22px; line-height:1.15; margin:6px 0 6px; letter-spacing:-.01em; }
+  #card p { margin:0 0 10px; color:var(--mute); font-size:13px; }
+  .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin:0 0 12px; }
+  .stat { background:rgba(255,255,255,.06); border-radius:9px; padding:7px 4px 6px; text-align:center; }
+  .stat b { display:block; font-size:16px; font-variant-numeric:tabular-nums; }
+  .stat span { font-size:10.5px; color:var(--mute); }
+  .row { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
+  button.chip { background:rgba(255,255,255,.07); color:var(--fg); border:1px solid var(--line); border-radius:999px; padding:6px 11px; font:inherit; font-size:12.5px; cursor:pointer; }
+  button.chip.on { background:#2e5a41; border-color:#4c8a66; }
+  button.cta { background:var(--acc); color:#1b1a10; border-color:var(--acc); font-weight:600; }
+  .lbl { font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mute); margin:8px 0 5px; }
+  #card.min > :not(.eyebrow) { display:none; }
+  #note { font-size:11px; color:var(--mute); margin:6px 0 0; }
+  #split { position:fixed; top:0; bottom:0; width:3px; background:#fff; left:50%; z-index:4; cursor:ew-resize; box-shadow:0 0 0 1px rgba(0,0,0,.35); touch-action:none; }
+  #split::after { content:"◂ ▸"; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:#fff; color:#111; font-size:12px; padding:9px 7px; border-radius:999px; white-space:nowrap; }
+  #split .tag { position:absolute; top:calc(env(safe-area-inset-top) + 14px); font-size:11px; letter-spacing:.1em; text-transform:uppercase; background:rgba(0,0,0,.6); padding:4px 8px; border-radius:6px; white-space:nowrap; }
+  #split .l { right:12px; color:var(--acc); } #split .r { left:12px; }
+  #info { position:fixed; right:14px; top:14px; width:280px; max-width:calc(100vw - 28px); background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px 14px; z-index:6; display:none; backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); }
+  #info h2 { font-size:15px; margin:0 0 6px; padding-right:18px; } #info dl { margin:0; display:grid; grid-template-columns:auto 1fr; gap:3px 12px; font-size:12.5px; } #info dt { color:var(--mute); } #info dd { margin:0; text-align:right; font-variant-numeric:tabular-nums; }
+  #info .x { position:absolute; right:10px; top:8px; background:none; border:0; color:var(--mute); font-size:18px; cursor:pointer; }
+  #cap { position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom) + 34px); transform:translateX(-50%); width:min(560px,calc(100vw - 28px)); background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px 14px; z-index:6; display:none; backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); }
+  #cap b { display:block; font-size:15px; margin-bottom:2px; } #cap span { color:var(--mute); font-size:13px; } #cap .nav { display:flex; gap:6px; margin-top:9px; align-items:center; } #cap .dots { flex:1; color:var(--mute); font-size:12px; }
+  #meas { position:fixed; left:50%; top:14px; transform:translateX(-50%); background:var(--acc); color:#1b1a10; border-radius:999px; padding:7px 14px; font-weight:600; font-size:13px; z-index:6; display:none; white-space:nowrap; }
+  @media (max-width:640px) { #card { width:calc(100vw - 28px); } h1 { font-size:19px; } #info { top:auto; bottom:calc(env(safe-area-inset-bottom) + 34px); right:14px; } #meas { top:auto; bottom:calc(env(safe-area-inset-bottom) + 34px); } }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="split"><span class="tag l">Our drone · 6 cm</span><span class="tag r">Satellite · 50 cm</span></div>
+
+<div id="card">
+  <div class="eyebrow"><span>Drone plot mapping · EUDR</span><button id="min" aria-label="Collapse">–</button></div>
+  <h1>See the farm, not a blur.</h1>
+  <p>One drone photo of a farm at Bagalur, mapped. Drag the white line to compare it with the satellite image everyone else works from.</p>
+  <div class="stats">
+    <div class="stat"><b id="s-gsd">6 cm</b><span>per pixel</span></div>
+    <div class="stat"><b id="s-plots">14</b><span>plots, 21 ha</span></div>
+    <div class="stat"><b id="s-trees">854</b><span>trees found</span></div>
+    <div class="stat"><b id="s-bld">39</b><span>buildings</span></div>
+  </div>
+  <div class="row"><button class="chip cta" id="tour">▶ Take the tour</button><button class="chip" id="home">Reset view</button><button class="chip" id="top">Top down</button></div>
+  <div class="lbl">Show</div>
+  <div class="row" id="layers">
+    <button class="chip on" data-l="plots">EUDR plots</button><button class="chip on" data-l="blocks">Mango / areca</button><button class="chip on" data-l="trees">Trees</button>
+    <button class="chip on" data-l="buildings">Buildings</button><button class="chip on" data-l="pois">Notes</button><button class="chip on" data-l="swipe">Compare line</button>
+  </div>
+  <div class="lbl">Measure</div>
+  <div class="row"><button class="chip" id="m-dist">Distance</button><button class="chip" id="m-area">Area</button><button class="chip" id="m-clear">Clear</button></div>
+  <p id="note">Tap anything for details. Plots are read from the image and need checking against land records. Tree and building heights are AI estimates.</p>
+</div>
+
+<div id="info"><button class="x" aria-label="Close">×</button><h2></h2><dl></dl></div>
+<div id="meas"></div>
+<div id="cap"><b></b><span></span><div class="nav"><span class="dots"></span><button class="chip" id="prev">Back</button><button class="chip cta" id="next">Next</button><button class="chip" id="stop">End</button></div></div>
+
+<script>window.CESIUM_BASE_URL = "https://cdn.jsdelivr.net/npm/cesium@1.124.0/Build/Cesium/";</script>
+<script src="https://cdn.jsdelivr.net/npm/cesium@1.124.0/Build/Cesium/Cesium.js"></script>
+<script src="ion-public.js"></script>
+<script type="module">
+const C = Cesium; C.Ion.defaultAccessToken = ION.token;
+const DATA = await (await fetch("data.json")).json();
+const viewer = new C.Viewer("map", {
+  animation: false, timeline: false, baseLayerPicker: false, geocoder: false, homeButton: false, sceneModePicker: false, navigationHelpButton: false,
+  fullscreenButton: false, infoBox: false, selectionIndicator: false, requestRenderMode: true, maximumRenderTimeChange: Infinity,
+  terrain: C.Terrain.fromWorldTerrain(), baseLayer: C.ImageryLayer.fromProviderAsync(C.IonImageryProvider.fromAssetId(2)),
+});
+const scene = viewer.scene; scene.globe.depthTestAgainstTerrain = true; scene.skyAtmosphere.show = true; scene.fog.enabled = true;
+viewer.cesiumWidget.screenSpaceEventHandler.removeInputAction(C.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
+const drone = viewer.imageryLayers.addImageryProvider(await C.IonImageryProvider.fromAssetId(ION.drone));
+drone.splitDirection = C.SplitDirection.LEFT; drone.contrast = 1.18; drone.saturation = 1.25; drone.gamma = 0.92;   // lift the haze of a 350 m photo
+
+// ---- compare line
+const split = document.getElementById("split"); let swipeOn = true;
+function setSplit(f) { f = Math.min(0.97, Math.max(0.03, f)); split.style.left = f * 100 + "%"; scene.splitPosition = f; scene.requestRender(); }
+setSplit(0.5);
+let drag = false;
+split.addEventListener("pointerdown", e => { drag = true; split.setPointerCapture(e.pointerId); });
+split.addEventListener("pointermove", e => { if (drag) setSplit(e.clientX / innerWidth); });
+split.addEventListener("pointerup", () => drag = false);
+function swipe(on) { swipeOn = on; document.querySelector('[data-l="swipe"]').classList.toggle("on", on); split.style.display = on ? "" : "none"; drone.splitDirection = on ? C.SplitDirection.LEFT : C.SplitDirection.NONE; scene.requestRender(); }
+
+// ---- layers
+const L = { plots: [], blocks: [], pois: [] }; let treePrims = [];
+const deg = (ring) => C.Cartesian3.fromDegreesArray(ring.flat());
+const near = new C.DistanceDisplayCondition(0, 2600), mid = new C.DistanceDisplayCondition(0, 1500);
+const label = (text, o = {}) => ({ text, font: "600 13px system-ui, sans-serif", fillColor: C.Color.WHITE, outlineColor: C.Color.fromCssColorString("#0d1411"), outlineWidth: 4, style: C.LabelStyle.FILL_AND_OUTLINE,
+  heightReference: C.HeightReference.CLAMP_TO_GROUND, disableDepthTestDistance: Number.POSITIVE_INFINITY, verticalOrigin: C.VerticalOrigin.BOTTOM, pixelOffset: new C.Cartesian2(0, -6), distanceDisplayCondition: near, ...o });
+const centroid = ring => { let x = 0, y = 0; ring.forEach(p => { x += p[0]; y += p[1]; }); return [x / ring.length, y / ring.length]; };
+
+// the mapped photo footprint
+viewer.entities.add({ polyline: { positions: deg([...DATA.footprint, DATA.footprint[0]]), clampToGround: true, width: 1.5, material: C.Color.fromCssColorString("#ffd23f").withAlpha(0.9) } });
+
+for (const f of DATA.plots.features) {
+  const ring = f.geometry.coordinates[0], p = f.properties, id = p.ProductionPlace.replace("BAGALUR-", ""), c = centroid(ring);
+  const info = { title: `Plot ${id}`, rows: [["Area", p.Area.toFixed(2) + " ha"], ["EUDR geometry", p.Area > 4 ? "Polygon (over 4 ha)" : "Polygon (point also allowed)"], ["Format", "GeoJSON · WGS84 · 6 dp"], ["Checks", "Valid ring · no overlaps"], ["Boundary from", "Tracks, hedges, land use"]] };
+  L.plots.push(viewer.entities.add({ polygon: { hierarchy: deg(ring), material: C.Color.fromCssColorString("#ffd23f").withAlpha(0.06), classificationType: C.ClassificationType.TERRAIN }, properties: { info } }));
+  L.plots.push(viewer.entities.add({ polyline: { positions: deg(ring), clampToGround: true, width: 2.5, material: C.Color.fromCssColorString("#ffd23f") }, properties: { info } }));
+  L.plots.push(viewer.entities.add({ position: C.Cartesian3.fromDegrees(c[0], c[1]), label: label(`${id} · ${p.Area.toFixed(1)} ha`, { fillColor: C.Color.fromCssColorString("#ffe27a") }), properties: { info } }));
+}
+for (const b of DATA.blocks) {
+  const col = C.Color.fromCssColorString(b.crop === "mango" ? "#ff9f3f" : "#3fd6b8");
+  const info = { title: b.name, rows: [["Crop", b.crop === "mango" ? "Mango" : "Areca nut (supari)"], ["Block area", b.ha.toFixed(2) + " ha"], ["Plants counted", "about " + b.plants], ["Density", "about " + Math.round(b.plants / b.ha) + " per ha"], ["Counted by", "AI on the drone photo"]] };
+  L.blocks.push(viewer.entities.add({ polygon: { hierarchy: deg(b.ring), material: col.withAlpha(0.22), classificationType: C.ClassificationType.TERRAIN }, properties: { info } }));
+  L.blocks.push(viewer.entities.add({ polyline: { positions: deg([...b.ring, b.ring[0]]), clampToGround: true, width: 2, material: new C.PolylineDashMaterialProperty({ color: col, dashLength: 12 }) }, properties: { info } }));
+  L.blocks.push(viewer.entities.add({ position: C.Cartesian3.fromDegrees(...b.centre), label: label(`${b.crop === "mango" ? "Mango" : "Areca"} · ~${b.plants} plants`, { fillColor: col, distanceDisplayCondition: mid, font: "600 12px system-ui, sans-serif", pixelOffset: new C.Cartesian2(0, -28) }), properties: { info } }));
+}
+const pin = new C.PinBuilder();
+for (const p of DATA.pois) {
+  L.pois.push(viewer.entities.add({ position: C.Cartesian3.fromDegrees(...p.at), billboard: { image: pin.fromColor(C.Color.fromCssColorString("#2e5a41"), 36).toDataURL(), verticalOrigin: C.VerticalOrigin.BOTTOM, heightReference: C.HeightReference.CLAMP_TO_GROUND, disableDepthTestDistance: Number.POSITIVE_INFINITY, distanceDisplayCondition: near },
+    label: label(p.name, { pixelOffset: new C.Cartesian2(0, -40), distanceDisplayCondition: mid }), properties: { info: { title: p.name, rows: [["", p.text]] } } }));
+}
+
+// trees: crowns + trunks as two batched primitives, sitting on the terrain
+const carto = DATA.trees.map(t => C.Cartographic.fromDegrees(t[0], t[1])), bcarto = DATA.buildings.map(b => C.Cartographic.fromDegrees(...centroid(b.ring)));
+try { await C.sampleTerrainMostDetailed(viewer.terrainProvider, [...carto, ...bcarto]); } catch (e) { [...carto, ...bcarto].forEach(c => c.height = 880); }
+// buildings: one batched primitive with real heights (ground-relative entity shapes sorted wrongly against the trees)
+const bInfo = new Map();
+const bInst = DATA.buildings.map((b, i) => {
+  const g0 = (bcarto[i].height || 0) - 0.5, big = b.m2 > 1500;
+  bInfo.set("b" + i, { title: big ? "Polyhouse / large shed" : "Building", rows: [["Footprint", Math.round(b.m2) + " m²"], ["Height (AI estimate)", b.h.toFixed(1) + " m"], ["Outline by", "SAM 2.1 (open source)"]] });
+  return new C.GeometryInstance({ id: "b" + i, geometry: new C.PolygonGeometry({ polygonHierarchy: new C.PolygonHierarchy(deg(b.ring)), height: g0, extrudedHeight: g0 + 0.5 + b.h, vertexFormat: C.PerInstanceColorAppearance.VERTEX_FORMAT }),
+    attributes: { color: C.ColorGeometryInstanceAttribute.fromColor(C.Color.fromCssColorString(big ? "#cfe3e6" : "#e7e2d6")) } });
+});
+const bPrim = scene.primitives.add(new C.Primitive({ geometryInstances: bInst, appearance: new C.PerInstanceColorAppearance({ flat: false, translucent: false }), shadows: C.ShadowMode.ENABLED }));
+const crowns = [], trunks = [];
+DATA.trees.forEach((t, i) => {
+  const [lon, lat, rw, H, palm, r, g, b] = t, g0 = carto[i].height || 0, enu = C.Transforms.eastNorthUpToFixedFrame(C.Cartesian3.fromDegrees(lon, lat, g0));
+  const half = palm ? 0.9 : Math.min(0.38 * H, Math.max(0.35 * H, 0.75 * rw)), low = palm ? H : H - 2 * half, k = 1.1;   // lift greens a little: crowns were shot from above
+  const m = (tx, s) => C.Matrix4.multiply(enu, C.Matrix4.fromTranslationRotationScale(new C.TranslationRotationScale(tx, C.Quaternion.IDENTITY, s)), new C.Matrix4());
+  crowns.push(new C.GeometryInstance({ geometry: new C.EllipsoidGeometry({ radii: new C.Cartesian3(1, 1, 1), stackPartitions: 8, slicePartitions: 10, vertexFormat: C.PerInstanceColorAppearance.VERTEX_FORMAT }),
+    modelMatrix: m(new C.Cartesian3(0, 0, low + half), new C.Cartesian3(rw, rw, half)), attributes: { color: new C.ColorGeometryInstanceAttribute(0.7 * Math.min(1, r / 255 * k) + 0.3 * 0.2, 0.7 * Math.min(1, g / 255 * k) + 0.3 * 0.36, 0.7 * Math.min(1, b / 255 * k) + 0.3 * 0.16, 1) } }));   // photo colour, pulled a little toward leaf green
+  trunks.push(new C.GeometryInstance({ geometry: new C.CylinderGeometry({ length: 1, topRadius: 0.7, bottomRadius: 1, slices: 6, vertexFormat: C.PerInstanceColorAppearance.VERTEX_FORMAT }),
+    modelMatrix: m(new C.Cartesian3(0, 0, (low + half * 0.5) / 2), new C.Cartesian3(palm ? 0.22 : Math.min(0.45, 0.06 * rw + 0.1), palm ? 0.22 : Math.min(0.45, 0.06 * rw + 0.1), low + half * 0.5)), attributes: { color: C.ColorGeometryInstanceAttribute.fromColor(C.Color.fromCssColorString("#5b4632")) } }));
+});
+treePrims = [crowns, trunks].map(gi => scene.primitives.add(new C.Primitive({ geometryInstances: gi, appearance: new C.PerInstanceColorAppearance({ flat: false, translucent: false }), asynchronous: true, shadows: C.ShadowMode.ENABLED })));
+
+function show(name, on) {
+  if (name === "swipe") return swipe(on);
+  if (name === "trees") treePrims.forEach(p => p.show = on); else if (name === "buildings") bPrim.show = on; else L[name].forEach(e => e.show = on);
+  scene.requestRender();
+}
+document.getElementById("layers").addEventListener("click", e => { const l = e.target.dataset.l; if (!l) return; show(l, e.target.classList.toggle("on")); });
+
+// ---- camera
+const centre = C.Cartesian3.fromDegrees(DATA.centre[0], DATA.centre[1], (carto[0]?.height || 880));
+const bs = new C.BoundingSphere(centre, 10);
+const look = (heading, pitch, range, at = centre, duration = 2.4) => new Promise(res => viewer.camera.flyToBoundingSphere(new C.BoundingSphere(at, 10), { offset: new C.HeadingPitchRange(C.Math.toRadians(heading), C.Math.toRadians(pitch), range), duration, complete: res, cancel: res }));
+const at = (lon, lat) => C.Cartesian3.fromDegrees(lon, lat, carto[0]?.height || 880);
+viewer.camera.setView({ destination: C.Cartesian3.fromDegrees(DATA.centre[0], DATA.centre[1], 9000) });
+const home = () => look(20, -38, 900);
+document.getElementById("home").onclick = home;
+document.getElementById("top").onclick = () => look(0, -90, 1000);
+
+// ---- details card
+const infoEl = document.getElementById("info");
+function showInfo(i) { infoEl.querySelector("h2").textContent = i.title; infoEl.querySelector("dl").innerHTML = i.rows.map(([k, v]) => k ? `<dt>${k}</dt><dd>${v}</dd>` : `<dd style="grid-column:1/-1;text-align:left;color:var(--mute)">${v}</dd>`).join(""); infoEl.style.display = "block"; }
+infoEl.querySelector(".x").onclick = () => infoEl.style.display = "none";
+
+// ---- measure
+let mode = null, pts = [], mEnt = null, mLabel = null, done = []; const measEl = document.getElementById("meas");
+const geod = new C.EllipsoidGeodesic();
+function lengthOf(p) { let d = 0; for (let i = 1; i < p.length; i++) { geod.setEndPoints(C.Cartographic.fromCartesian(p[i - 1]), C.Cartographic.fromCartesian(p[i])); d += geod.surfaceDistance; } return d; }
+function areaOf(p) { const inv = C.Matrix4.inverse(C.Transforms.eastNorthUpToFixedFrame(p[0]), new C.Matrix4()), q = p.map(v => C.Matrix4.multiplyByPoint(inv, v, new C.Cartesian3())); let a = 0; for (let i = 0; i < q.length; i++) { const j = (i + 1) % q.length; a += q[i].x * q[j].y - q[j].x * q[i].y; } return Math.abs(a) / 2; }
+const fmt = () => mode === "dist" ? (pts.length < 2 ? "Tap points along the line" : `${lengthOf(pts).toFixed(1)} m` + (pts.length > 1 ? " · double-tap to finish" : "")) : (pts.length < 3 ? "Tap the corners of the area" : `${(areaOf(pts) / 1e4).toFixed(3)} ha · ${Math.round(areaOf(pts))} m² · double-tap to finish`);
+function startMeasure(m) { finishMeasure(); mode = m; pts = []; measEl.style.display = "block"; measEl.textContent = fmt(); document.getElementById("m-dist").classList.toggle("on", m === "dist"); document.getElementById("m-area").classList.toggle("on", m === "area");
+  mEnt = viewer.entities.add({ polyline: { positions: new C.CallbackProperty(() => mode === "area" && pts.length > 2 ? [...pts, pts[0]] : pts, false), clampToGround: true, width: 3, material: C.Color.fromCssColorString("#ffffff") },
+    polygon: { hierarchy: new C.CallbackProperty(() => new C.PolygonHierarchy(mode === "area" ? pts : []), false), material: C.Color.WHITE.withAlpha(0.18), classificationType: C.ClassificationType.TERRAIN } }); }
+function finishMeasure() { if (!mode) return; if (mEnt) { const p = pts.slice(), md = mode; viewer.entities.remove(mEnt);
+    if (p.length > (md === "dist" ? 1 : 2)) { const txt = md === "dist" ? `${lengthOf(p).toFixed(1)} m` : `${(areaOf(p) / 1e4).toFixed(3)} ha`;
+      done.push(viewer.entities.add({ polyline: { positions: md === "area" ? [...p, p[0]] : p, clampToGround: true, width: 3, material: C.Color.WHITE }, position: p[p.length - 1], label: label(txt, { distanceDisplayCondition: undefined, showBackground: true, backgroundColor: C.Color.fromCssColorString("#0d1411").withAlpha(0.85) }) })); } }
+  mode = null; mEnt = null; pts = []; measEl.style.display = "none"; document.getElementById("m-dist").classList.remove("on"); document.getElementById("m-area").classList.remove("on"); scene.requestRender(); }
+document.getElementById("m-dist").onclick = () => mode === "dist" ? finishMeasure() : startMeasure("dist");
+document.getElementById("m-area").onclick = () => mode === "area" ? finishMeasure() : startMeasure("area");
+document.getElementById("m-clear").onclick = () => { finishMeasure(); done.forEach(e => viewer.entities.remove(e)); done = []; scene.requestRender(); };
+
+const handler = new C.ScreenSpaceEventHandler(scene.canvas);
+handler.setInputAction(e => {
+  if (mode) { const ray = viewer.camera.getPickRay(e.position), p = scene.globe.pick(ray, scene); if (p) { pts.push(p); measEl.textContent = fmt(); scene.requestRender(); } return; }
+  const hit = scene.pick(e.position), i = typeof hit?.id === "string" ? bInfo.get(hit.id) : hit?.id?.properties?.info?.getValue(); if (i) showInfo(i); else infoEl.style.display = "none";
+}, C.ScreenSpaceEventType.LEFT_CLICK);
+handler.setInputAction(() => { if (mode) { pts.pop(); finishMeasure(); } }, C.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
+
+// ---- tour
+const B = DATA.blocks, P = DATA.pois, only = (...on) => ["plots", "blocks", "trees", "buildings", "pois"].forEach(l => { const b = document.querySelector(`[data-l="${l}"]`); b.classList.toggle("on", on.includes(l)); show(l, on.includes(l)); });
+const STEPS = [
+  { t: "Same farm, two pictures", s: "Left of the line is one photo from our drone at 6 cm per pixel. Right is the satellite image at about 50 cm. Drag the line.", go: () => { only(); swipe(true); setSplit(0.5); return look(0, -90, 620); } },
+  { t: "14 plots, ready for EUDR", s: `${DATA.stats.plots_ha} ha split into whole plots along tracks and hedges, exported as GeoJSON in WGS84 with 6 decimals, checked for the 4 ha rule and overlaps.`, go: () => { only("plots"); swipe(false); return look(0, -60, 1300); } },
+  { t: "Mango blocks, counted", s: `About ${B.filter(b => b.crop === "mango").reduce((a, b) => a + b.plants, 0)} mango trees across three blocks. Every crown is found by AI on the photo, so counts take minutes, not a field day.`, go: () => { only("blocks", "trees"); swipe(false); return look(-35, -32, 330, at(...B[0].centre)); } },
+  { t: "Areca nut (supari)", s: `Two young areca blocks, about ${B.filter(b => b.crop === "areca").reduce((a, b) => a + b.plants, 0)} plants. Gaps in the grid show up straight away from above.`, go: () => { only("blocks", "trees"); swipe(false); return look(25, -40, 300, at(...B[3].centre)); } },
+  { t: "Buildings and polyhouses", s: `${DATA.stats.buildings} structures outlined automatically, with footprints in square metres. Useful for the farm file and for insurance.`, go: () => { only("buildings", "pois", "trees"); swipe(false); return look(165, -36, 640); } },
+  { t: "Measure anything", s: "Use Distance or Area to check a fence line or a field yourself. Then picture this for your whole estate.", go: () => { only("plots", "blocks", "trees", "buildings", "pois"); swipe(true); return home(); } },
+];
+let step = -1; const cap = document.getElementById("cap");
+async function goStep(i) { step = i; const s = STEPS[i]; cap.style.display = "block"; cap.querySelector("b").textContent = s.t; cap.querySelector("span").textContent = s.s; cap.querySelector(".dots").textContent = `${i + 1} / ${STEPS.length}`;
+  document.getElementById("next").textContent = i === STEPS.length - 1 ? "Finish" : "Next"; document.getElementById("prev").style.visibility = i ? "visible" : "hidden"; if (innerWidth < 641) document.getElementById("card").classList.add("min"); infoEl.style.display = "none"; await s.go(); }
+function endTour() { step = -1; cap.style.display = "none"; only("plots", "blocks", "trees", "buildings", "pois"); swipe(true); }
+document.getElementById("tour").onclick = () => goStep(0);
+document.getElementById("next").onclick = () => step < STEPS.length - 1 ? goStep(step + 1) : endTour();
+document.getElementById("prev").onclick = () => step > 0 && goStep(step - 1);
+document.getElementById("stop").onclick = endTour;
+document.getElementById("min").onclick = e => { const m = document.getElementById("card").classList.toggle("min"); e.target.textContent = m ? "+" : "–"; };
+
+if (innerWidth < 641) { document.getElementById("card").classList.add("min"); document.getElementById("min").textContent = "+"; }
+const q = new URLSearchParams(location.search);
+await home(); window.__ready = true;
+if (q.get("tour")) goStep(+q.get("tour") - 1 || 0);
+</script>
+</body>
+</html>
