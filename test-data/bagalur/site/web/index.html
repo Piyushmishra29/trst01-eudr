@@ -133,7 +133,7 @@ import { RenderPass } from "./jsm/postprocessing/RenderPass.js";
 import { GTAOPass } from "./jsm/postprocessing/GTAOPass.js";
 import { OutputPass } from "./jsm/postprocessing/OutputPass.js";
 
-const BUILD = "2609190110", V = u => u + (u.includes("?") ? "&" : "?") + "v=" + BUILD, LOAD = window.__load;   // BUILD is stamped by deploy.sh: every file the page asks for carries it, so a browser can never pair a new page with an old script
+const BUILD = "2609190113", V = u => u + (u.includes("?") ? "&" : "?") + "v=" + BUILD, LOAD = window.__load;   // BUILD is stamped by deploy.sh: every file the page asks for carries it, so a browser can never pair a new page with an old script
 const { buildStructures, buildFlora, buildGround } = await import(V("./models.js")); LOAD.to(0.12, "Reading the survey");
 const q = new URLSearchParams(location.search), $ = id => document.getElementById(id);
 const touch = matchMedia("(pointer:coarse)").matches, small = Math.min(screen.width, screen.height) < 700 || Math.min(innerWidth, innerHeight) < 500;
@@ -340,13 +340,13 @@ addEventListener("resize", resize); addEventListener("orientationchange", () => 
 
 // ---- quality follows the machine: 2 = everything, always. 1 = contact shading and full sharpness only once the view rests. 0 = plain render while moving.
 // The page steps down by itself when frames take too long (never back up, so it cannot flicker between levels). ?q=0|1|2 pins a level.
-const DPR = Math.min(devicePixelRatio, lite ? 2.5 : 2); let moveRes = lite ? 1.5 : 1, level = q.has("q") ? +q.get("q") : (lite ? 0 : 2), curRes = 0, lastFrame = 0, lastMove = 0, pendingFinal = false; const dts = [];
+const DPR = Math.min(devicePixelRatio, lite ? 3 : 2); let moveRes = lite ? 2 : 1, level = q.has("q") ? +q.get("q") : (lite ? 0 : 2), curRes = 0, lastFrame = 0, lastMove = 0, pendingFinal = false; const dts = [];
 function setRes(r) { if (r === curRes) return; curRes = r; renderer.setPixelRatio(r); composer?.setPixelRatio(r); }
 const pxPerM = d => innerHeight / (2 * d * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)));
 function scaleLines() { const d = camera.position.distanceTo(controls.target), w = THREE.MathUtils.clamp(0.55 * pxPerM(d), 0.9, 2.3), far = THREE.MathUtils.clamp((d - 1500) / 2500, 0, 1);
   mLine.linewidth = w; mGhost.linewidth = w * 0.8; mLine.opacity = 0.95 - 0.3 * far; mUnder.linewidth = w * 2.4 + 1; mUnder.opacity = 0.3 - 0.18 * far; mSel.linewidth = w * 1.5 + 0.8; mMeas.linewidth = w * 1.3 + 0.8; }
 function draw(final) { scaleLines(); if (bits?.update(camera)) dirty = true;
-  const post = composer && (level === 2 || (final && level >= 0 && !lite)); setRes(level === 2 || final ? DPR : Math.min(DPR, level === 1 ? 1.25 : moveRes));   // phones: 1.5x while moving (1x looked soft on a 3x screen), full sharpness at rest; drops to 1x only if frames run slow if (ao) ao.enabled = level === 2 || final;
+  const post = composer && (level === 2 || (final && level >= 0 && !lite)); setRes(level === 2 || final ? DPR : Math.min(DPR, level === 1 ? 1.25 : moveRes));   // phones: 2x while moving, the screen's full 3x at rest; never below 1.5x if (ao) ao.enabled = level === 2 || final;
   if (post) composer.render(); else renderer.render(scene, camera);
   renderer.autoClear = false; renderer.clearDepth(); renderer.render(overlay, camera); renderer.autoClear = true; layoutLabels(final);
 }
@@ -365,7 +365,7 @@ renderer.setAnimationLoop(() => {
   const now = performance.now();
   if (!dirty) { if (pendingFinal && now - lastMove > 220) { pendingFinal = false; draw(true); } lastFrame = 0; return; }
   dirty = false; lastMove = now; pendingFinal = level < 2;
-  if (lastFrame && level === 0 && moveRes > 1 && dts.length >= 12 && dts.slice(-12).reduce((a, b) => a + b) / 12 > 42) moveRes = 1;
+  if (lastFrame && level === 0 && moveRes > 1.5 && dts.length >= 12 && dts.slice(-12).reduce((a, b) => a + b) / 12 > 50) { moveRes = Math.max(1.5, moveRes - 0.5); dts.length = 0; }   // a phone screen packs 3 px per point: below 1.5x the picture turns blocky, so sharpness is held and a slow phone gives up a little smoothness instead
   if (lastFrame) { dts.push(now - lastFrame); if (dts.length >= 3 && !q.has("q") && level > 0) { const avg = dts.slice(-10).reduce((a, b) => a + b) / Math.min(10, dts.length), slow3 = dts.slice(-3).every(d => d > 110);
       if (slow3) { level = 0; dts.length = 0; pendingFinal = true; } else if (dts.length >= 10 && ((level === 2 && avg > 30) || (level === 1 && avg > 48))) { level--; dts.length = 0; pendingFinal = true; } } if (dts.length > 40) dts.shift(); } lastFrame = now;
   draw(false);
@@ -376,9 +376,12 @@ if (q.get("small") !== "0") Promise.all([J("ground.json"), J("models.json"), tex
 
 // sharper ground on capable desktops: swap in the 6,720 px photo once everything is up
 if (lite && renderer.capabilities.maxTextureSize >= 4096 && (navigator.deviceMemory ?? 4) >= 4 && q.get("uhd") !== "0") setTimeout(() => texLoader.loadAsync("tex_hd.webp").then(t => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = maxAniso; for (const m of [ground.material, roofM]) { m.map = t; m.needsUpdate = true; } tex.dispose(); tex = t; dirty = true; }).catch(() => {}), 2500);   // phones start on the light photo (0.6 MB) and swap to the 12 cm one once the scene is up
+if (lite && renderer.capabilities.maxTextureSize >= 8192 && (navigator.deviceMemory ?? 8) >= 6 && devicePixelRatio >= 2.5 && q.get("uhd") !== "0") setTimeout(() => moveRes >= 2 && texLoader.loadAsync("tex_uhd.webp").then(t => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = maxAniso; for (const m of [ground.material, roofM]) { m.map = t; m.needsUpdate = true; } tex.dispose(); tex = t; dirty = true; }).catch(() => {}), 12000);   // recent phones that kept 2x through the first seconds also get the 7 cm photo, so a pinch-zoom stays crisp
 if (!lite && renderer.capabilities.maxTextureSize >= 8192 && q.get("uhd") !== "0") setTimeout(() => level === 2 && texLoader.loadAsync("tex_uhd.webp").then(t => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = maxAniso; for (const m of [ground.material, roofM]) { m.map = t; m.needsUpdate = true; } tex.dispose(); tex = t; dirty = true; }).catch(() => {}), 7000);   // only machines that kept full quality through the opening move
 if (q.has("edit")) import(V("./editor.js")).then(m => m.start({ THREE, ED, parcels, camera, controls, pick, groundY, buildParcel, labelParcel, refreshList, geom, select, go, toast, treeG, reshadow, labs, labEl, parcelG, parcelS, saved: EDITS, markDirty: () => dirty = true })).catch(e => { window.__err = String(e); });
-window.__q = () => level; if (q.has("dbg")) window.__dbg = { scene, renderer, treeG, bld, ground, sun, overlay, labs, camera, controls, CX, CZ };
+window.__q = () => level; if (q.has("dbg")) { const h = document.createElement("div"); h.style.cssText = "position:fixed;left:8px;top:8px;z-index:20;background:rgba(0,0,0,.72);color:#fff;font:11px/1.4 monospace;padding:6px 8px;border-radius:6px;pointer-events:none;white-space:pre"; document.body.appendChild(h);
+  setInterval(() => { const a = dts.slice(-10); h.textContent = `screen ${innerWidth}x${innerHeight} @${devicePixelRatio}x\ndrawing at ${renderer.getPixelRatio()}x (moving ${moveRes}x, rest ${DPR}x)\nmode ${lite ? "phone" : "desktop"} level ${level}\nground photo ${tex.image?.width || "?"} px, max ${renderer.capabilities.maxTextureSize}\nframe ${a.length ? (a.reduce((x, y) => x + y) / a.length).toFixed(0) : "-"} ms, memory ${navigator.deviceMemory ?? "n/a"} GB`; }, 500); }
+if (q.has("dbg")) window.__dbg = { scene, renderer, treeG, bld, ground, sun, overlay, labs, camera, controls, CX, CZ };
 </script>
 </body>
 </html>
