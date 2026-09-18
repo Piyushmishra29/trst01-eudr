@@ -81,6 +81,21 @@ This was not a mapping flight: the SD card has 3 straight-down photos (500 m, 30
 
 The share links are view-only. The WebODM dashboard at the same host still needs the login.
 
+### 3D from a single photo (AI depth), works on iPhone
+
+**Live:** https://b650-3070.tail641fa8.ts.net:10000/ (no login, served from the desktop over Tailscale Funnel)
+
+Depth Anything V2 (Large, run locally on the RTX 3070) estimates a height for every pixel of DJI_0995 (350 m, straight down). The large-scale tilt the model adds is removed. The result is draped with the photo in a three.js viewer: orbit, zoom, change the height and the sun.
+
+- **Phones:** the viewer loads a light version by default (2048 px photo, 504×378 grid, about 2.5 MB). It frames portrait screens to fit, redraws only when something moves, and has an **HD** button for the full 4032 px version.
+- **Heights are illustrative, not measured.** Use WebODM or a survey for anything that needs real heights.
+
+| AI depth viewer (real photo, estimated heights) | AI render (Higgsfield Nano Banana Pro) | iPhone 12 |
+|:-:|:-:|:-:|
+| <img src="docs/img/ai3d_depth_viewer.jpg" width="330"> | <img src="docs/img/ai3d_AI_render_nano_banana_pro.jpg" width="330"> | <img src="docs/img/ai3d_phone.jpg" width="130"> |
+
+The middle image is **AI-generated**. It was made from the depth-viewer render (angle and layout) plus the real photo (detail), 2 credits. The layout matches the farm, but the trees, walls and background are invented, so it is for pitch visuals only and never for EUDR. The code is in `test-data/bagalur/ai3d/` (`depth.py`, `relief.py`, `prompt.txt`, `web/`).
+
 ---
 
 ## Tools

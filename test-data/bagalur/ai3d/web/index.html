@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0e1210">
+<title>Bagalur 3D Relief</title>
+<style>
+  :root { --bg:#0e1210; --fg:#e8ece6; --mute:#a3ada5; --panel:rgba(14,18,16,.8); }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--fg); font:14px/1.4 -apple-system,system-ui,sans-serif; overflow:hidden; overscroll-behavior:none; }
+  body { height:100dvh; }
+  canvas { display:block; touch-action:none; -webkit-user-select:none; user-select:none; }
+  #ui { position:fixed; left:max(12px,env(safe-area-inset-left)); top:max(12px,env(safe-area-inset-top)); width:min(320px,calc(100vw - 24px)); box-sizing:border-box;
+        background:var(--panel); padding:10px 12px; border-radius:12px; -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); }
+  #ui header { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  #ui h1 { font-size:15px; margin:0; }
+  #toggle { background:none; border:0; color:var(--fg); font-size:18px; padding:4px 8px; cursor:pointer; }
+  #ui.min .body { display:none; }
+  #ui p { margin:6px 0 8px; color:var(--mute); font-size:12px; }
+  #ui label { display:flex; gap:10px; align-items:center; font-size:13px; margin:8px 0; }
+  #ui input[type=range] { flex:1; height:28px; }
+  #views { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  #views button { background:#26302a; color:var(--fg); border:0; border-radius:8px; padding:9px 11px; font-size:13px; cursor:pointer; }
+  #views button.on { background:#3d6b4c; }
+  #hint { position:fixed; bottom:max(14px,env(safe-area-inset-bottom)); left:0; right:0; text-align:center; color:var(--mute); font-size:12px; pointer-events:none; transition:opacity 1s; }
+  #load { position:fixed; inset:0; display:grid; place-items:center; color:var(--mute); text-align:center; padding:20px; }
+</style>
+</head>
+<body>
+<div id="load">Loading 3D…</div>
+<div id="ui">
+  <header><h1>Bagalur farm, 3D</h1><button id="toggle" aria-label="Hide panel">–</button></header>
+  <div class="body">
+    <p>One DJI Mini 3 Pro photo (350 m). Heights from AI depth estimation: <b>illustrative, not measured</b>.</p>
+    <label>Height <input id="ex" type="range" min="0" max="30" step="0.5" value="8"></label>
+    <label>Sun <input id="sun" type="range" min="0" max="360" step="1" value="120"></label>
+    <div id="views">
+      <button data-v="oblique">Angled</button><button data-v="low">Low</button><button data-v="top">Top</button><button data-v="spin">Rotate</button><button data-v="hd" id="hdbtn">HD</button>
+    </div>
+  </div>
+</div>
+<div id="hint">Drag to orbit · pinch to zoom · two fingers to pan</div>
+<script type="module">
+import * as THREE from "./three.module.js";
+import { OrbitControls } from "./OrbitControls.js";
+
+const q = new URLSearchParams(location.search);
+const touch = matchMedia("(pointer:coarse)").matches;
+const small = Math.min(screen.width, screen.height) < 700 || Math.min(innerWidth, innerHeight) < 500;
+const portrait = () => innerHeight > innerWidth;
+let hd = q.has("hd") ? q.get("hd") !== "0" : !(touch || small);   // phones start light, HD on request
+const W = 400, H = 300;
+
+const renderer = new THREE.WebGLRenderer({ antialias: !touch, powerPreference: "high-performance" });
+renderer.setPixelRatio(Math.min(devicePixelRatio, touch ? 2 : 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = touch ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xbcd0dc);
+scene.fog = new THREE.Fog(0xbcd0dc, 500, 1100);
+const camera = new THREE.PerspectiveCamera(portrait() ? 55 : 40, innerWidth / innerHeight, 1, 3000);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.maxPolarAngle = Math.PI * 0.47;
+controls.minDistance = 40; controls.maxDistance = 900;
+controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x6b5a45, 1.6));
+const sun = new THREE.DirectionalLight(0xfff1dc, 1.6);
+sun.castShadow = true;
+Object.assign(sun.shadow.camera, { left: -260, right: 260, top: 220, bottom: -220, near: 1, far: 1200 });
+sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.6;
+scene.add(sun, sun.target);
+
+const loadImg = src => new Promise((ok, err) => { const i = new Image(); i.onload = () => ok(i); i.onerror = err; i.src = src; });
+const texLoader = new THREE.TextureLoader();
+let mesh, geo, hts, ex = 8;
+
+async function build() {
+  const tag = hd ? "hd" : "sd";
+  const [hImg, tex] = await Promise.all([loadImg(`height_${tag}.png`), texLoader.loadAsync(`tex_${tag}.jpg`)]);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+  const c = document.createElement("canvas"); c.width = hImg.width; c.height = hImg.height;
+  const cx = c.getContext("2d", { willReadFrequently: true }); cx.drawImage(hImg, 0, 0);
+  const px = cx.getImageData(0, 0, c.width, c.height).data;
+  const n = c.width * c.height; hts = new Float32Array(n);
+  for (let i = 0; i < n; i++) hts[i] = (px[i * 4] * 256 + px[i * 4 + 1]) / 65535;
+  if (mesh) { scene.remove(mesh); mesh.geometry.dispose(); mesh.material.map.dispose(); mesh.material.dispose(); }
+  geo = new THREE.PlaneGeometry(W, H, c.width - 1, c.height - 1);
+  geo.rotateX(-Math.PI / 2);
+  mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: tex, roughness: 0.95, metalness: 0 }));
+  mesh.castShadow = mesh.receiveShadow = true;
+  scene.add(mesh);
+  applyHeights();
+  const sm = hd ? 4096 : 2048;
+  if (sun.shadow.mapSize.x !== sm) { sun.shadow.mapSize.set(sm, sm); sun.shadow.map?.dispose(); sun.shadow.map = null; }
+  document.getElementById("hdbtn").classList.toggle("on", hd);
+}
+function applyHeights() {
+  const pos = geo.attributes.position;
+  for (let i = 0; i < pos.count; i++) pos.setY(i, hts[i] * ex);
+  pos.needsUpdate = true; geo.computeVertexNormals();
+}
+function setSun(deg) { const r = THREE.MathUtils.degToRad(deg); sun.position.set(Math.cos(r) * 300, 260, Math.sin(r) * 300); }
+
+const views = {
+  oblique: [[-120, 210, 330], [0, 0, 10]],
+  low:     [[150, 55, 230], [-20, 0, -10]],
+  top:     [[0, 560, 1], [0, 0, 0]],
+};
+function go(v) {
+  const [p, t] = views[v]; const k = portrait() ? 1.25 : 1;  // portrait phones: step back a little so the farm fits
+  scene.fog.near = 500 * k * (v === 'top' ? 2 : 1); scene.fog.far = 1100 * k * (v === 'top' ? 2 : 1);
+  camera.position.set(p[0] * k, p[1] * k, p[2] * k); controls.target.set(...t); controls.update();
+}
+
+try {
+  await build();
+} catch (e) {
+  document.getElementById("load").textContent = "Couldn't load the 3D model on this device. Try the HD button off, or open on a computer.";
+  throw e;
+}
+setSun(120);
+go(q.get("view") || "oblique");
+
+let pending = false;
+document.getElementById("ex").addEventListener("input", e => {
+  ex = +e.target.value;
+  if (!pending) { pending = true; requestAnimationFrame(() => { applyHeights(); pending = false; }); }
+});
+document.getElementById("sun").addEventListener("input", e => setSun(+e.target.value));
+document.getElementById("views").addEventListener("click", async e => {
+  const v = e.target.dataset.v; if (!v) return;
+  if (v === "spin") { controls.autoRotate = !controls.autoRotate; controls.autoRotateSpeed = 0.8; e.target.classList.toggle("on", controls.autoRotate); }
+  else if (v === "hd") { hd = !hd; e.target.textContent = "Loading…"; await build(); e.target.textContent = "HD"; }
+  else go(v);
+});
+const ui = document.getElementById("ui");
+document.getElementById("toggle").addEventListener("click", () => {
+  ui.classList.toggle("min"); document.getElementById("toggle").textContent = ui.classList.contains("min") ? "+" : "–";
+});
+if (small) ui.classList.add("min"), document.getElementById("toggle").textContent = "+";
+function resize() {
+  camera.aspect = innerWidth / innerHeight; camera.fov = portrait() ? 55 : 40; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight);
+}
+addEventListener("resize", resize);
+addEventListener("orientationchange", () => setTimeout(resize, 200));
+document.getElementById("load").remove();
+setTimeout(() => document.getElementById("hint").style.opacity = 0, 5000);
+
+// render only while something moves: saves battery and keeps phones cool
+let dirty = true, idle = 0;
+controls.addEventListener("change", () => { dirty = true; });
+["input", "click", "resize"].forEach(t => addEventListener(t, () => { dirty = true; }, true));
+document.addEventListener("visibilitychange", () => { dirty = true; });
+window.__ready = true;
+renderer.setAnimationLoop(() => {
+  const moving = controls.update();
+  if (moving || controls.autoRotate) dirty = true;
+  if (dirty) { renderer.render(scene, camera); dirty = false; idle = 0; }
+  else if (++idle > 2 && document.hidden) return;
+});
+</script>
+</body>
+</html>

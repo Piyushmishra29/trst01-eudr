@@ -29,6 +29,11 @@ test-data/bagalur/*
 !test-data/bagalur/plots/
 !test-data/bagalur/*.qml
 test-data/bagalur/plots/road_mask.png
+!test-data/bagalur/ai3d/
+test-data/bagalur/ai3d/*
+!test-data/bagalur/ai3d/web/
+!test-data/bagalur/ai3d/*.py
+!test-data/bagalur/ai3d/prompt.txt
 
 # local tool logs
 .gstack/
