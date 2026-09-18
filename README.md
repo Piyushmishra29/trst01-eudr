@@ -1,0 +1,128 @@
+# TRST01 · EUDR plot mapping with a drone
+
+**From one drone photo to EUDR-ready plot boundaries.** This toolkit is built for coffee estates in Chikmagalur. It places drone photos on the map, lines them up with satellite imagery, traces fields and whole land parcels, and exports them in the GeoJSON format EUDR requires (WGS84, 6 decimal places). It also plans the mapping flights and validates the farm files TRST01 sends.
+
+<p align="center">
+  <img src="docs/img/pipeline.gif" alt="Pipeline: satellite, GPS placement, alignment, roads, fields, whole plots" width="820">
+</p>
+
+<p align="center"><sub>Test site: Bagalur (Hosur), one DJI Mini 3 Pro photo at 500 m. 14 whole plots (21.2 ha) and 45 fields, all passing <code>eudr_check</code>.</sub></p>
+
+---
+
+## Pipeline
+
+```mermaid
+flowchart LR
+    subgraph FIELD["In the field"]
+        A[Estate boundary<br/>KML / traced] --> B[plan_flight.py<br/>one block per battery]
+        B --> C[DroneDeploy / Litchi<br/>Air 2 · Mini 3 Pro]
+    end
+    subgraph DESK["At the desk"]
+        C --> D{How many photos?}
+        D -- "one nadir photo" --> E[place_photo.py<br/>XMP GPS · yaw · height]
+        D -- "a full survey" --> F[WebODM GPU<br/>orthophoto · DSM]
+        E --> G[Align to satellite<br/>edge phase-corr + ECC]
+        F --> G
+        G --> H[snap_roads.py<br/>tracks within ~1 m]
+        H --> I[Trace fields + whole plots<br/>traced_px.py]
+        I --> J[polish_plots.py<br/>edges to road side, roads cut out]
+    end
+    subgraph OUT["For TRST01"]
+        J --> K[export_plots.py<br/>KML + GeoJSON]
+        K --> L[eudr_check.py<br/>4 ha rule · validity · overlaps]
+        L --> M[(*.eudr.geojson<br/>WGS84 · 6 dp)]
+        M --> N[Whisp in QGIS 3.44<br/>31 Dec 2020 check]
+    end
+```
+
+## The six steps
+
+| | | |
+|:-:|:-:|:-:|
+| <img src="docs/img/step1.jpg" width="300"><br/>**1 · Satellite base**<br/><sub>Esri World Imagery as the reference</sub> | <img src="docs/img/step2.jpg" width="300"><br/>**2 · GPS placement**<br/><sub>Camera XMP only: about 23 m off</sub> | <img src="docs/img/step3.jpg" width="300"><br/>**3 · Aligned**<br/><sub>Edge phase-correlation + ECC</sub> |
+| <img src="docs/img/step4.jpg" width="300"><br/>**4 · Roads snapped**<br/><sub>11 tracks + highway, about 1 m</sub> | <img src="docs/img/step5.jpg" width="300"><br/>**5 · 45 fields**<br/><sub>Every field, orchard and polyhouse</sub> | <img src="docs/img/step6.jpg" width="300"><br/>**6 · 14 whole plots**<br/><sub>Bounded by tracks, hedges and the highway</sub> |
+
+### GPS placement vs aligned
+
+The drone's own GPS and compass put the photo about 23 m west and 19 m south of its true position, rotated 3.6°. Alignment against the satellite image fixes that. The highway is the easiest place to check.
+
+<img src="docs/img/alignment_split.jpg" width="820">
+
+### Boundaries that stop at the road
+
+Plot edges that run along a road are moved onto the side of the road, and the road itself is cut out, so no plot claims a strip of road. Neighbouring plots with no road between them share one line, so there are no slivers or double lines.
+
+<img src="docs/img/closeup_w08_w09.jpg" width="820">
+
+### Flight planning for the estates
+
+`plan_flight.py` splits a boundary into one-battery blocks for DroneDeploy. The example is the Yelliemadaloo draft: 75.9 ha, Air 2 at 100 m, 3.6 cm/px, about 1,100 photos, 5 batteries.
+
+<img src="docs/img/estate_flight_blocks.jpg" width="820">
+
+### WebODM, tested locally with the GPU
+
+The ODM Aukerman sample (77 photos) processed in 14 minutes on an RTX 3070. Left: orthophoto. Right: elevation model (DSM).
+
+<img src="docs/img/webodm_test.jpg" width="820">
+
+---
+
+## Tools
+
+| Script | What it does |
+|---|---|
+| `eudr_check.py` | Validates any GDAL-readable farm file (KML/KMZ, GeoJSON, SHP, GPKG, GPX, CSV). Enforces the >4 ha polygon rule, valid rings, ≥4 vertices and an India bounding box (catches swapped lat/lon). Flags declared vs mapped area more than 25% apart, overlaps and multi-part plots. Writes `*.eudr.geojson` (EPSG:4326, 6 dp) and `*.report.csv`. |
+| `plan_flight.py` | Splits a boundary into one-battery blocks (`*.blocks.kml`), flight lines and a plan (GSD, overlap, batteries, photo count, WebODM job size). Drones: `air2`, `air2s`, `mini3pro`. Refuses heights above 120 m. |
+| `place_photo.py` | Places one straight-down DJI photo from its XMP data (GPS, relative altitude, gimbal yaw) as a GeoTIFF at the photo's own GSD. `--raw` develops the DNG instead. |
+| `develop_dng.py` | Develops a DJI DNG with rawpy using the camera's white balance (runs in `.venv`). |
+| `match_colors.py`, `dehaze.py` | Colour experiments, kept for reference. The camera JPG looked the most natural. |
+| `test-data/bagalur/plots/snap_roads.py` | Snaps rough road centre lines onto the tracks in the photo (white top-hat ridge search, smoothed). |
+| `test-data/bagalur/plots/polish_plots.py` | Moves plot edges onto the road side, re-intersects corners, cuts roads out and clips fields to their whole plot. `FIXED` plots are only road-cut, never moved. |
+| `test-data/bagalur/plots/export_plots.py` | Converts pixel outlines to WGS84 KML: `bagalur_plots.kml` (fields) and `bagalur_whole_plot.kml`. |
+| `docs/make_media.py` | Rebuilds every image in this README from the project data. |
+
+## Quick start
+
+```bash
+# validate whatever TRST01 sends
+./eudr_check.py incoming/            # -> out/<file>.eudr.geojson + .report.csv
+./eudr_check.py incoming/ --fix      # also repairs self-intersections; always check the shape
+
+# plan an estate before the visit
+./plan_flight.py estates/3_yelliemadaloo_murgadi/boundary.kml --drone air2 --alt 100
+
+# one photo -> plots
+./place_photo.py /media/.../DJI_0001.JPG -o test-data/bagalur/jpg
+cd test-data/bagalur/plots
+./snap_roads.py && ./polish_plots.py && ./export_plots.py
+../../../eudr_check.py bagalur_whole_plot.kml bagalur_plots.kml -o .
+```
+
+Then open `*.eudr.geojson` in QGIS 3.44 LTR and run the **Whisp** plugin for the 31 Dec 2020 deforestation check. Whisp supports QGIS up to 3.99 only, so it won't run in the QGIS 4.x Flatpak.
+
+## EUDR rules applied
+
+- Plots **over 4 ha need a polygon**; 4 ha or less can be a point.
+- WGS84 (EPSG:4326), at least 6 decimal places, GeoJSON.
+- Deforestation cutoff: **31 Dec 2020**. Applies from **30 Dec 2026** to large operators and **30 Jun 2027** to small ones.
+
+## Repo layout
+
+```
+eudr_check.py  plan_flight.py  place_photo.py  develop_dng.py  match_colors.py  dehaze.py
+estates/                 estate pins + per-estate boundary, blocks, lines, plan (Yelliemadaloo draft)
+samples/                 MADE-UP test farms and a synthetic 413 ha estate
+test-data/bagalur/plots/ the traced Bagalur plots, roads and the plot pipeline scripts
+docs/                    README media + make_media.py
+```
+
+**Not in git:** drone photos, GeoTIFFs, WebODM outputs, the Python venv, and `aggregator/`. That folder holds the estate contacts, which include people's personal phone numbers, so it stays on this machine only. Run `python3 -m venv .venv && .venv/bin/pip install rawpy numpy pillow opencv-python-headless scikit-image` to rebuild the venv.
+
+## Caveats
+
+- Whole plots are **read from the image**: tracks, hedges and changes in land use. They are not legal boundaries. Before anything goes to TRST01, the aggregator or farmer must confirm each plot against the land records (RTC / survey number).
+- Edges along roads are snapped to within about 1 m. Hand-traced edges along hedges and between fields are accurate to about 1–2 m. The whole photo can be off by a few metres, because it is aligned to satellite imagery.
+- Esri World Imagery is used for alignment and review. Check its licence before any client-facing redistribution.
+- `samples/TEST_*` files are synthetic, not real farms.

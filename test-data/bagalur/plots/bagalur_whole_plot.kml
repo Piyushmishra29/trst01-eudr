@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document id="root_doc">
+<Schema name="plots" id="plots">
+	<SimpleField name="farm_id" type="string"></SimpleField>
+	<SimpleField name="farmer_name" type="string"></SimpleField>
+</Schema>
+<Folder><name>plots</name>
+  <Placemark>
+	<description>Hosur farm (whole plot), 2.73 ha, traced on DJI_0001 (13 Sep)</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#plots">
+		<SimpleData name="farm_id">BAGALUR-W01</SimpleData>
+		<SimpleData name="farmer_name">Hosur farm (whole plot)</SimpleData>
+	</SchemaData></ExtendedData>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>77.8461528604415,12.8134433251805 77.8461324242524,12.8116242997195 77.8464578159037,12.8116160948476 77.8472828734442,12.8116218079094 77.8475028415477,12.8116363730287 77.8474963311176,12.811960607906 77.847386781586,12.8132667644188 77.8471631168599,12.8132936824579 77.8463769299416,12.81342092342 77.8461528604415,12.8134433251805</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<description>NW orchard, 0.54 ha, traced on DJI_0001 (13 Sep)</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#plots">
+		<SimpleData name="farm_id">BAGALUR-W02</SimpleData>
+		<SimpleData name="farmer_name">NW orchard</SimpleData>
+	</SchemaData></ExtendedData>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>77.847063240554,12.8148751299611 77.8463312187666,12.8149811965496 77.8463237351184,12.8143152339782 77.8470465234886,12.814307411243 77.8470663577396,12.8146928351547 77.847063240554,12.8148751299611</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<description>orchard block, 1.72 ha, traced on DJI_0001 (13 Sep)</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#plots">
+		<SimpleData name="farm_id">BAGALUR-W03</SimpleData>
+		<SimpleData name="farmer_name">orchard block</SimpleData>
+	</SchemaData></ExtendedData>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>77.8479400294036,12.8147998299756 77.8474496908885,12.814825164917 77.8471034939334,12.8148713625258 77.8470970633351,12.8142992625184 77.8471883386763,12.8141704006376 77.8472910230484,12.8140852697141 77.8473544096611,12.8140015128549 77.8475913579598,12.8139765152575 77.8477257585548,12.8139746946754 77.8485622965313,12.8138558698559 77.8487918678853,12.8138403746493 77.8488161978138,12.8142976627898 77.8488210963228,12.8147094791996 77.8479400294036,12.8147998299756</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<description>red fields W of track, 1.05 ha, traced on DJI_0001 (13 Sep)</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#plots">
+		<SimpleData name="farm_id">BAGALUR-W04</SimpleData>
+		<SimpleData name="farmer_name">red fields W of track</SimpleData>
+	</SchemaData></ExtendedData>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>77.8463237351184,12.8143152339782 77.8463142045303,12.8134670618214 77.8465563079044,12.8134301039229 77.846874537478,12.8134028432336 77.8473811169926,12.8134355730058 77.8473810591959,12.8139421675759 77.8473591192365,12.8139452698282 77.847168426451,12.8141356661354 77.8470465234886,12.814307411243 77.8463237351184,12.8143152339782</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<description>scrub block N, 1.34 ha, traced on DJI_0001 (13 Sep)</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#plots">
+		<SimpleData name="farm_id">BAGALUR-W05</SimpleData>
+		<SimpleData name="farmer_name">scrub block N</SimpleData>
+	</SchemaData></ExtendedData>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>77.8475694804375,12.8139406504985 77.847424490777,12.8139424177717 77.8474195343673,12.8135600923966 77.8474266846094,12.8131987614466 77.8474403393867,12.8130570877276 77.8483576526161,12.8130377113929 77.8487530898601,12.8130566744484 77.8487701097503,12.8137891156971 77.8479531670442,12.813903350716 77.8475694804375,12.8139406504985</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<description>red plots block, 1.78 ha, traced on DJI_0001 (13 Sep)</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#plots">
+		<SimpleData name="farm_id">BAGALUR-W06</SimpleData>
+		<SimpleData name="farmer_name">red plots block</SimpleData>
+	</SchemaData></ExtendedData>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>77.8487641634553,12.8130046641731 77.8474695238173,12.8130219310093 77.8474947786574,12.8124922589516 77.8475297811134,12.8121285613328 77.8475364119225,12.8117983269916 77.8475632413743,12.8116463398015 77.8482924887704,12.8117321010127 77.8484878262677,12.8117423629397 77.8485451889104,12.8119495250202 77.8485330867363,12.8119748652108 77.8485525638641,12.8119891152332 77.8485962909798,12.8122238506408 77.848713690609,12.8126099500931 77.8487590222954,12.812909621598 77.8487641634553,12.8130046641731</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<description>central farm N, 3.29 ha, traced on DJI_0001 (13 Sep)</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#plots">
+		<SimpleData name="farm_id">BAGALUR-W07</SimpleData>
+		<SimpleData name="farmer_name">central farm N</SimpleData>
+	</SchemaData></ExtendedData>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>77.8488641340707,12.814659471444 77.8488672304523,12.8140983634093 77.8488510909434,12.8139542433656 77.8488404361686,12.8133658992197 77.8509916582201,12.8132719926263 77.850973846745,12.8135759387162 77.8509771741466,12.8136868918031 77.8509219236272,12.8141050848679 77.8508967059183,12.8144773902885 77.8508583064701,12.8146065788962 77.8488641340707,12.814659471444</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<description>NE farm (polyhouse+sheds), 1.56 ha, traced on DJI_0001 (13 Sep)</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#plots">
+		<SimpleData name="farm_id">BAGALUR-W08</SimpleData>
+		<SimpleData name="farmer_name">NE farm (polyhouse+sheds)</SimpleData>
+	</SchemaData></ExtendedData>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>77.8509655600295,12.8145630396105 77.8509591794126,12.8144050367647 77.8509765079436,12.8139922647669 77.8510089348054,12.8137605455309 77.851010645704,12.8135775015317 77.8510345843712,12.8132631047593 77.851105880497,12.8127188507107 77.8519028912476,12.8126877257254 77.8518684939254,12.8128179360207 77.8518382125068,12.8130321522512 77.8517793678164,12.8132670600944 77.8516102648925,12.8141612582126 77.8515537897214,12.8145566628402 77.8509655600295,12.8145630396105</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<description>central farm S (polyhouses), 3.59 ha, traced on DJI_0001 (13 Sep)</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#plots">
+		<SimpleData name="farm_id">BAGALUR-W09</SimpleData>
+		<SimpleData name="farmer_name">central farm S (polyhouses)</SimpleData>
+	</SchemaData></ExtendedData>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>77.8509970097296,12.8132717298993 77.8497412012596,12.8133207635679 77.8488304834208,12.8133667593837 77.8488107256061,12.8129672307496 77.8487729657777,12.8126498377985 77.8486612819301,12.8122349875727 77.8486217270569,12.8119915328953 77.849680250473,12.8119936175446 77.8498189083656,12.8120463116594 77.8499342534454,12.8120721601683 77.8503255201434,12.8120642973632 77.8506475108389,12.8120499691409 77.850667715014,12.8120418363344 77.8510982572791,12.8120414818638 77.851105880497,12.8127188507107 77.8510599659541,12.8127283810413 77.8509970097296,12.8132717298993</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<description>SE fields (palm, pond), 1.02 ha, traced on DJI_0001 (13 Sep)</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#plots">
+		<SimpleData name="farm_id">BAGALUR-W10</SimpleData>
+		<SimpleData name="farmer_name">SE fields (palm, pond)</SimpleData>
+	</SchemaData></ExtendedData>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>77.851105880497,12.8127188507107 77.8510961904669,12.8118578264529 77.8515654117613,12.8118324440803 77.8522887216497,12.8118187516689 77.851959958101,12.8124920189927 77.8519027963275,12.8126880688991 77.851105880497,12.8127188507107</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<description>striped fields S, 0.32 ha, traced on DJI_0001 (13 Sep)</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#plots">
+		<SimpleData name="farm_id">BAGALUR-W11</SimpleData>
+		<SimpleData name="farmer_name">striped fields S</SimpleData>
+	</SchemaData></ExtendedData>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>77.8515599969953,12.8113590258666 77.8517866202153,12.8110494581595 77.8519706836233,12.811047462875 77.8519789978106,12.8117860595216 77.8517024558044,12.8117806714766 77.851564841987,12.8117894909708 77.8515599969953,12.8113590258666</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<description>south fields, 1.05 ha, traced on DJI_0001 (13 Sep)</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#plots">
+		<SimpleData name="farm_id">BAGALUR-W12</SimpleData>
+		<SimpleData name="farmer_name">south fields</SimpleData>
+	</SchemaData></ExtendedData>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>77.8510242078547,12.810777708178 77.8509953565593,12.8102586412714 77.8521457495579,12.8102461728507 77.8521398504828,12.8105397988964 77.8521545436614,12.8110274043077 77.8510961788949,12.8110388761618 77.8510242078547,12.810777708178</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<description>red fields E of highway, 0.74 ha, traced on DJI_0001 (13 Sep)</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#plots">
+		<SimpleData name="farm_id">BAGALUR-W13</SimpleData>
+		<SimpleData name="farmer_name">red fields E of highway</SimpleData>
+	</SchemaData></ExtendedData>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>77.8519757014841,12.8145165934921 77.8520221542547,12.814088391563 77.8521074953744,12.8137009231393 77.8528747840588,12.8136842337505 77.852882031407,12.8143277181688 77.8524312801857,12.8144332532519 77.8519757014841,12.8145165934921</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<description>NE polyhouse (N of road), 0.43 ha, traced on DJI_0001 (13 Sep)</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#plots">
+		<SimpleData name="farm_id">BAGALUR-W14</SimpleData>
+		<SimpleData name="farmer_name">NE polyhouse (N of road)</SimpleData>
+	</SchemaData></ExtendedData>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>77.8529060813709,12.8144199618203 77.8529103549167,12.8147993829871 77.8519165209398,12.8149211425915 77.8519243827204,12.8147476870318 77.8519599665151,12.8145572439896 77.8519853361085,12.8145535628824 77.8520163587966,12.8145701505385 77.8524326475894,12.8144886579453 77.8529060813709,12.8144199618203</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+</Folder>
+</Document></kml>

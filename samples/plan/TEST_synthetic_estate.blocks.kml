@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document id="root_doc">
+<Folder><name>TEST_synthetic_estate.blocks</name>
+  <Placemark>
+	<name>Block 01</name>
+	<description>9.8 ha, 1 battery, 100 m, 80/75 overlap</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>75.4587371325729,13.3562982442188 75.4544675852274,13.3570433284768 75.4545620000129,13.3575620591315 75.456,13.359 75.459088398678,13.3582279613272 75.4587371325729,13.3562982442188</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<name>Block 02</name>
+	<description>9.4 ha, 1 battery, 100 m, 80/75 overlap</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>75.4630066513682,13.3555530887959 75.4587371325729,13.3562982442188 75.459088398678,13.3582279613272 75.4633018453716,13.3571746146825 75.4630066513682,13.3555530887959</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<name>Block 03</name>
+	<description>8.9 ha, 1 battery, 100 m, 80/75 overlap</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>75.4630066513682,13.3555530887959 75.4633018453716,13.3571746146825 75.4675152532783,13.3561211990504 75.468,13.356 75.4682475931739,13.3546382876595 75.4672761415906,13.3548078622206 75.4630066513682,13.3555530887959</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<name>Block 04</name>
+	<description>7.9 ha, 1 battery, 100 m, 80/75 overlap</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>75.4544675852274,13.3570433284768 75.4537747519143,13.3532367102016 75.4507622821103,13.3537623727425 75.4541063007589,13.3571063732045 75.4544675852274,13.3570433284768</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<name>Block 05</name>
+	<description>20.1 ha, 1 battery, 100 m, 80/75 overlap</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>75.4580442352514,13.3524916394822 75.4537747519143,13.3532367102016 75.4544675852274,13.3570433284768 75.4587371325729,13.3562982442188 75.4580442352514,13.3524916394822</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<name>Block 06</name>
+	<description>20.1 ha, 1 battery, 100 m, 80/75 overlap</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>75.4623136900504,13.3517464976179 75.4580442352514,13.3524916394822 75.4587371325729,13.3562982442188 75.4630066513682,13.3555530887959 75.4623136900504,13.3517464976179</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<name>Block 07</name>
+	<description>20.1 ha, 1 battery, 100 m, 80/75 overlap</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>75.4665831162887,13.351001284621 75.4623136900504,13.3517464976179 75.4630066513682,13.3555530887959 75.4672761415906,13.3548078622206 75.4665831162887,13.351001284621</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<name>Block 08</name>
+	<description>7.9 ha, 1 battery, 100 m, 80/75 overlap</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>75.4665831162887,13.351001284621 75.4672761415906,13.3548078622206 75.4682475931739,13.3546382876595 75.4689851135041,13.3505819911892 75.4665831162887,13.351001284621</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<name>Block 09</name>
+	<description>20.1 ha, 1 battery, 100 m, 80/75 overlap</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>75.4530819422432,13.3494300881989 75.4488124943926,13.3501750742487 75.448128285725,13.3502944563601 75.448,13.351 75.449176778,13.3521768282959 75.4507622821103,13.3537623727425 75.4537747519143,13.3532367102016 75.4530819422432,13.3494300881989</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<name>Block 10</name>
+	<description>20.1 ha, 1 battery, 100 m, 80/75 overlap</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>75.4573513615907,13.3486850310115 75.4530819422432,13.3494300881989 75.4537747519143,13.3532367102016 75.4580442352514,13.3524916394822 75.4573513615907,13.3486850310115</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<name>Block 11</name>
+	<description>20.1 ha, 1 battery, 100 m, 80/75 overlap</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>75.4616207524123,13.347939902699 75.4573513615907,13.3486850310115 75.4580442352514,13.3524916394822 75.4623136900504,13.3517464976179 75.4616207524123,13.347939902699</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<name>Block 12</name>
+	<description>20.1 ha, 1 battery, 100 m, 80/75 overlap</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>75.4658901146853,13.3471947032739 75.4616207524123,13.347939902699 75.4623136900504,13.3517464976179 75.4665831162887,13.351001284621 75.4658901146853,13.3471947032739</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<name>Block 13</name>
+	<description>14.7 ha, 1 battery, 100 m, 80/75 overlap</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>75.4658901146853,13.3471947032739 75.4665831162887,13.351001284621 75.4689851135041,13.3505819911892 75.4697226114692,13.3465256920949 75.4658901146853,13.3471947032739</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<name>Block 14</name>
+	<description>19.9 ha, 1 battery, 100 m, 80/75 overlap</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>75.4530819422432,13.3494300881989 75.4523891562043,13.3456234624709 75.4488657904406,13.346238266448 75.4484811017242,13.3483540252605 75.448128285725,13.3502944563601 75.4488124943926,13.3501750742487 75.4530819422432,13.3494300881989</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<name>Block 15</name>
+	<description>20.1 ha, 1 battery, 100 m, 80/75 overlap</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>75.4566585115809,13.3448784188087 75.4523891562043,13.3456234624709 75.4530819422432,13.3494300881989 75.4573513615907,13.3486850310115 75.4566585115809,13.3448784188087</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<name>Block 16</name>
+	<description>20.1 ha, 1 battery, 100 m, 80/75 overlap</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>75.4609278384438,13.3441333040412 75.4566585115809,13.3448784188087 75.4573513615907,13.3486850310115 75.4616207524123,13.347939902699 75.4609278384438,13.3441333040412</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<name>Block 17</name>
+	<description>20.1 ha, 1 battery, 100 m, 80/75 overlap</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>75.4651971367703,13.3433881181811 75.4609278384438,13.3441333040412 75.4616207524123,13.347939902699 75.4658901146853,13.3471947032739 75.4651971367703,13.3433881181811</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<name>Block 18</name>
+	<description>18.0 ha, 1 battery, 100 m, 80/75 overlap</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>75.4651971367703,13.3433881181811 75.4658901146853,13.3471947032739 75.4697226114692,13.3465256920949 75.4699478141463,13.3452870339321 75.4698673882724,13.3448452923993 75.4681730676499,13.3428686385097 75.4651971367703,13.3433881181811</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<name>Block 19</name>
+	<description>17.5 ha, 1 battery, 100 m, 80/75 overlap</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>75.4516963937873,13.3418168330193 75.4513311593693,13.339809868893 75.45,13.34 75.4496032727034,13.3421820738778 75.4488657904406,13.346238266448 75.4523891562043,13.3456234624709 75.4516963937873,13.3418168330193</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<name>Block 20</name>
+	<description>20.1 ha, 1 battery, 100 m, 80/75 overlap</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>75.4559656852119,13.3410718028756 75.4516963937873,13.3418168330193 75.4523891562043,13.3456234624709 75.4566585115809,13.3448784188087 75.4559656852119,13.3410718028756</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<name>Block 21</name>
+	<description>20.1 ha, 1 battery, 100 m, 80/75 overlap</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>75.460234948135,13.3403267016466 75.4559656852119,13.3410718028756 75.4566585115809,13.3448784188087 75.4609278384438,13.3441333040412 75.460234948135,13.3403267016466</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<name>Block 22</name>
+	<description>20.1 ha, 1 battery, 100 m, 80/75 overlap</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>75.4645041825337,13.3395815293448 75.460234948135,13.3403267016466 75.4609278384438,13.3441333040412 75.4651971367703,13.3433881181811 75.4645041825337,13.3395815293448</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<name>Block 23</name>
+	<description>8.7 ha, 1 battery, 100 m, 80/75 overlap</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>75.4645041825337,13.3395815293448 75.4651971367703,13.3433881181811 75.4681730676499,13.3428686385097 75.4652447536375,13.3394522588326 75.4645041825337,13.3395815293448</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<name>Block 24</name>
+	<description>10.2 ha, 1 battery, 100 m, 80/75 overlap</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>75.4516963937873,13.3418168330193 75.4559656852119,13.3410718028756 75.4556243982494,13.3391966109519 75.4513311593693,13.339809868893 75.4516963937873,13.3418168330193</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<name>Block 25</name>
+	<description>9.5 ha, 1 battery, 100 m, 80/75 overlap</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>75.4559656852119,13.3410718028756 75.460234948135,13.3403267016466 75.4599176130878,13.3385832809946 75.4556243982494,13.3391966109519 75.4559656852119,13.3410718028756</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<name>Block 26</name>
+	<description>9.4 ha, 1 battery, 100 m, 80/75 overlap</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>75.4645041825337,13.3395815293448 75.4652447536375,13.3394522588326 75.4642746090875,13.3383203895547 75.464,13.338 75.4599176130878,13.3385832809946 75.460234948135,13.3403267016466 75.4645041825337,13.3395815293448</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+</Folder>
+</Document></kml>

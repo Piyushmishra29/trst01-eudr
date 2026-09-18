@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document id="root_doc">
+<Schema name="estate_pins" id="estate_pins">
+	<SimpleField name="folder" type="string"></SimpleField>
+	<SimpleField name="confidence" type="string"></SimpleField>
+	<SimpleField name="gmaps" type="string"></SimpleField>
+</Schema>
+<Folder><name>estate_pins</name>
+  <Placemark>
+	<name>Devadhanam Estate (Google: 'Devadan estate')</name>
+	<ExtendedData><SchemaData schemaUrl="#estate_pins">
+		<SimpleData name="folder">1_devadhanam</SimpleData>
+		<SimpleData name="confidence">medium - name variant, in Balehonnur</SimpleData>
+		<SimpleData name="gmaps">https://www.google.com/maps/search/?api=1&amp;query=13.35206,75.4757155</SimpleData>
+	</SchemaData></ExtendedData>
+      <Point><coordinates>75.4757155,13.35206</coordinates></Point>
+  </Placemark>
+  <Placemark>
+	<name>Guntanaik Estate (approx: between CCRI and Kobade village)</name>
+	<ExtendedData><SchemaData schemaUrl="#estate_pins">
+		<SimpleData name="folder">2_guntanaik</SimpleData>
+		<SimpleData name="confidence">low - inferred from 'adjoins Kobade, near CCRI'; not on Google</SimpleData>
+		<SimpleData name="gmaps">https://www.google.com/maps/search/?api=1&amp;query=13.3749,75.419</SimpleData>
+	</SchemaData></ExtendedData>
+      <Point><coordinates>75.419,13.3749</coordinates></Point>
+  </Placemark>
+  <Placemark>
+	<name>Yelliemadaloo Estate (Google: 'Yelemadalu Estate')</name>
+	<ExtendedData><SchemaData schemaUrl="#estate_pins">
+		<SimpleData name="folder">3_yelliemadaloo_murgadi</SimpleData>
+		<SimpleData name="confidence">high - Google place, on Durgada betta slope</SimpleData>
+		<SimpleData name="gmaps">https://www.google.com/maps/search/?api=1&amp;query=13.381611,75.3869588</SimpleData>
+	</SchemaData></ExtendedData>
+      <Point><coordinates>75.3869588,13.381611</coordinates></Point>
+  </Placemark>
+  <Placemark>
+	<name>Murgadi Estate? (Google: 'Murugadde')</name>
+	<ExtendedData><SchemaData schemaUrl="#estate_pins">
+		<SimpleData name="folder">3_yelliemadaloo_murgadi</SimpleData>
+		<SimpleData name="confidence">low - possible name variant, 1.3 km from Yelemadalu</SimpleData>
+		<SimpleData name="gmaps">https://www.google.com/maps/search/?api=1&amp;query=13.3803102,75.3747379</SimpleData>
+	</SchemaData></ExtendedData>
+      <Point><coordinates>75.3747379,13.3803102</coordinates></Point>
+  </Placemark>
+  <Placemark>
+	<name>Durgada betta (hill)</name>
+	<ExtendedData><SchemaData schemaUrl="#estate_pins">
+		<SimpleData name="folder">3_yelliemadaloo_murgadi</SimpleData>
+		<SimpleData name="confidence">reference</SimpleData>
+		<SimpleData name="gmaps">https://www.google.com/maps/search/?api=1&amp;query=13.3685006,75.379447</SimpleData>
+	</SchemaData></ExtendedData>
+      <Point><coordinates>75.379447,13.3685006</coordinates></Point>
+  </Placemark>
+  <Placemark>
+	<name>Bartchinhulla Estate office</name>
+	<ExtendedData><SchemaData schemaUrl="#estate_pins">
+		<SimpleData name="folder">4_bartchinhulla</SimpleData>
+		<SimpleData name="confidence">high - Google place near Hanbal</SimpleData>
+		<SimpleData name="gmaps">https://www.google.com/maps/search/?api=1&amp;query=13.0158125,75.6849375</SimpleData>
+	</SchemaData></ExtendedData>
+      <Point><coordinates>75.6849375,13.0158125</coordinates></Point>
+  </Placemark>
+  <Placemark>
+	<name>Central Coffee Research Institute (CCRI)</name>
+	<ExtendedData><SchemaData schemaUrl="#estate_pins">
+		<SimpleData name="folder">ref</SimpleData>
+		<SimpleData name="confidence">reference, OSM</SimpleData>
+		<SimpleData name="gmaps">https://www.google.com/maps/search/?api=1&amp;query=13.36746,75.42062</SimpleData>
+	</SchemaData></ExtendedData>
+      <Point><coordinates>75.42062,13.36746</coordinates></Point>
+  </Placemark>
+</Folder>
+</Document></kml>

@@ -1,0 +1,117 @@
+{
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {
+    "folder": "1_devadhanam",
+    "name": "Devadhanam Estate (Google: 'Devadan estate')",
+    "confidence": "medium - name variant, in Balehonnur",
+    "gmaps": "https://www.google.com/maps/search/?api=1&query=13.35206,75.4757155"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     75.4757155,
+     13.35206
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "folder": "2_guntanaik",
+    "name": "Guntanaik Estate (approx: between CCRI and Kobade village)",
+    "confidence": "low - inferred from 'adjoins Kobade, near CCRI'; not on Google",
+    "gmaps": "https://www.google.com/maps/search/?api=1&query=13.3749,75.419"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     75.419,
+     13.3749
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "folder": "3_yelliemadaloo_murgadi",
+    "name": "Yelliemadaloo Estate (Google: 'Yelemadalu Estate')",
+    "confidence": "high - Google place, on Durgada betta slope",
+    "gmaps": "https://www.google.com/maps/search/?api=1&query=13.381611,75.3869588"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     75.3869588,
+     13.381611
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "folder": "3_yelliemadaloo_murgadi",
+    "name": "Murgadi Estate? (Google: 'Murugadde')",
+    "confidence": "low - possible name variant, 1.3 km from Yelemadalu",
+    "gmaps": "https://www.google.com/maps/search/?api=1&query=13.3803102,75.3747379"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     75.3747379,
+     13.3803102
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "folder": "3_yelliemadaloo_murgadi",
+    "name": "Durgada betta (hill)",
+    "confidence": "reference",
+    "gmaps": "https://www.google.com/maps/search/?api=1&query=13.3685006,75.379447"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     75.379447,
+     13.3685006
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "folder": "4_bartchinhulla",
+    "name": "Bartchinhulla Estate office",
+    "confidence": "high - Google place near Hanbal",
+    "gmaps": "https://www.google.com/maps/search/?api=1&query=13.0158125,75.6849375"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     75.6849375,
+     13.0158125
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "folder": "ref",
+    "name": "Central Coffee Research Institute (CCRI)",
+    "confidence": "reference, OSM",
+    "gmaps": "https://www.google.com/maps/search/?api=1&query=13.36746,75.42062"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     75.42062,
+     13.36746
+    ]
+   }
+  }
+ ]
+}

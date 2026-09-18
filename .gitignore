@@ -1,0 +1,34 @@
+# python / env
+.venv/
+__pycache__/
+*.pyc
+
+# personal data: estate contact persons (phone numbers) stay on this machine
+aggregator/
+
+# working folders
+incoming/*
+!incoming/.gitkeep
+out/
+
+# rasters, caches, drone media (too big / not ours to publish)
+*.tif
+*.tiff
+*.npy
+*.aux.xml
+gdalwmscache/
+*.DNG
+*.dng
+*.JPG
+*.MP4
+
+# test data: only the traced Bagalur plots + scripts go in git
+test-data/*
+!test-data/bagalur/
+test-data/bagalur/*
+!test-data/bagalur/plots/
+!test-data/bagalur/*.qml
+test-data/bagalur/plots/road_mask.png
+
+# local tool logs
+.gstack/

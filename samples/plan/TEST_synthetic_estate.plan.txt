@@ -1,0 +1,15 @@
+Flight plan: TEST_synthetic_estate.geojson
+Drone        DJI Mavic Air 2 (12MP)
+Area         413.2 ha (1021 acres)
+Height       100 m above take-off  -> GSD 3.6 cm/px (on flat ground)
+Footprint    143 x 107 m per photo
+Overlap      front 80% (photo every 21 m, 4.3 s)  side 75% (lines 36 m apart)
+Speed        5 m/s, line heading 170 deg
+Per battery  ~20.1 ha (22 min usable of 34)
+Blocks       26  -> TEST_synthetic_estate.blocks.kml
+Flight lines 119.9 km, ~5607 photos, ~470 min in the air
+Batteries    ~22 flights (add 20% spare for hills/wind)
+WebODM       split into jobs of <=800 photos on 32 GB RAM -> ~8 job(s)
+
+On a slope the GSD and overlap change: take off from the HIGHEST point of each
+block, or the far side will be closer to the drone than planned.

@@ -1,0 +1,15 @@
+Flight plan: boundary.kml
+Drone        DJI Mavic Air 2 (12MP)
+Area         75.9 ha (188 acres)
+Height       100 m above take-off  -> GSD 3.6 cm/px (on flat ground)
+Footprint    143 x 107 m per photo
+Overlap      front 80% (photo every 21 m, 4.3 s)  side 75% (lines 36 m apart)
+Speed        5 m/s, line heading 45 deg
+Per battery  ~20.1 ha (22 min usable of 34)
+Blocks       4  -> boundary.blocks.kml
+Flight lines 23.6 km, ~1102 photos, ~92 min in the air
+Batteries    ~5 flights (add 20% spare for hills/wind)
+WebODM       split into jobs of <=800 photos on 32 GB RAM -> ~2 job(s)
+
+On a slope the GSD and overlap change: take off from the HIGHEST point of each
+block, or the far side will be closer to the drone than planned.
