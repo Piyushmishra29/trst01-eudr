@@ -4,6 +4,6 @@
 set -e; cd "$(dirname "$0")"
 if [ -n "$1" ]; then cp "$1" "work/parcels_edit_$(date +%F_%H%M%S).json"; python3 pull_edits.py "$1"; else python3 pull_edits.py; fi
 python3 build_site.py 2>&1 | grep -v WARN | head -1
-python3 build_flora.py | tail -1
+python3 build_flora.py && python3 build_ground.py | tail -1
 cd web && rsync -azL --exclude 'a/index.html' --exclude 'a/tex_*.jpg' --exclude 'a/sat_*.jpg' --exclude 'a/three.module.js' --exclude 'a/OrbitControls.js' --exclude 'a/height_hd.png' ./ root@100.96.149.93:/srv/bagalur-estate/
 echo deployed
