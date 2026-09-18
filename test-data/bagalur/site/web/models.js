@@ -107,13 +107,13 @@ const ICO0 = flat(new THREE.IcosahedronGeometry(1, 0)), ICO1 = flat(new THREE.Ic
 // ---- small things on the ground (build_ground.py): stones, low bushes, grass and weed tufts, each where the photo shows one and tinted with its colour there.
 // Rows: x*10, z*10, size cm, kind (0 stone, 1 low bush, 2 tuft), rgb. Shapes come from real scans (prep_models.py: Poly Haven, CC0): plants as picture cards of the scanned plant (front, side, top),
 // stones as the scanned mesh near the camera and a plain lump further off. 40 m tiles that switch off beyond a few hundred metres, where all this is smaller than a pixel.
-export function buildGround(rows, { groundY, lite, toPhoto, DW, DH, models, atlas, wantNear }) {
+export async function buildGround(rows, { groundY, lite, toPhoto, DW, DH, models, atlas, wantNear }) {
   const TILE = 40, tiles = new Map(), col = new THREE.Color(), hsl = {}, ico = new THREE.IcosahedronGeometry(1, 0), ip = ico.attributes.position, icoIdx = flat(ico), newB = () => ({ p: [], n: [], uv: [], c: [], i: [] });
   const byKind = [[], [], []]; for (const m of models.models) byKind[m.kind].push(m); const PL = models.plain;
   const tileOf = (x, z) => { const k = Math.floor(x / TILE) + "," + Math.floor(z / TILE); let t = tiles.get(k); if (!t) tiles.set(k, t = { P: newB(), S: newB(), stones: [] }); return t; };
   const yAt = (x, z) => { const [pu, pv] = toPhoto(x, z); return pu > 4 && pv > 4 && pu < DW - 4 && pv < DH - 4 ? groundY(x, z) : -0.25; };
   const card = (B, pts, uv, flip, c, sh) => { const o = B.p.length / 3, [u0, v0, u1, v1] = uv, ua = flip ? u1 : u0, ub = flip ? u0 : u1; pts.forEach((q, k) => { B.p.push(...q); B.n.push(0, 1, 0); B.uv.push(k % 2 ? ub : ua, k < 2 ? v1 : v0); const f = sh[k < 2 ? 0 : 1]; B.c.push(c.r * f, c.g * f, c.b * f); }); B.i.push(o, o + 1, o + 2, o + 2, o + 1, o + 3); };   // lit like the ground it stands on
-  rows.forEach(([xi, zi, cm, kind, rgb], ti) => {
+  const one = ([xi, zi, cm, kind, rgb], ti) => {
     if (lite && kind && ti % 2) return; const x = xi / 10, z = zi / 10, s = cm / 100, y0 = yAt(x, z), T = tileOf(x, z); col.setHex(rgb);
     if (kind === 0) { T.stones.push([x, y0, z, s, rgb, ti]); const B = T.S;                             // far stone: a squashed, dented lump, flat-faced, a little sunk into the soil
       const rot = rnd(ti, 1, 21) * 6.283, cr = Math.cos(rot), sr = Math.sin(rot), sq = 0.45 + 0.3 * rnd(ti, 2, 21), o = B.p.length / 3, P = []; col.multiplyScalar(1.15);
@@ -126,7 +126,8 @@ export function buildGround(rows, { groundY, lite, toPhoto, DW, DH, models, atla
     if (kind === 1) leafy0(col, 1.6, hsl); col.multiplyScalar((kind === 1 ? 1.55 : 2.1) * (0.9 + 0.2 * rnd(ti, 8, 51)));   // the cards are evened out to mid grey, so the tint carries the full colour
     const sides = kind === 1 ? 3 : 2;
     for (let k = 0; k < sides; k++) { const a = rot + k * Math.PI / sides, dx = Math.cos(a) * w, dz = Math.sin(a) * w; card(B, [[x - dx, yt, z - dz], [x + dx, yt, z + dz], [x - dx, yb, z - dz], [x + dx, yb, z + dz]], M.cards[k % 2], k === 2, col, [1.05, 0.6]); }
-    if (kind === 1 && M.cards[2]) { const t = M.top * sc / 2, cr = Math.cos(rot) * t, sr = Math.sin(rot) * t, yy = y0 + 0.5 * M.h * sc; card(B, [[x - cr + sr, yy, z - sr - cr], [x + cr + sr, yy, z + sr - cr], [x - cr - sr, yy, z - sr + cr], [x + cr - sr, yy, z + sr + cr]], M.cards[2], false, col, [1, 1]); } });   // seen from above a bush is its top view, not two thin lines
+    if (kind === 1 && M.cards[2]) { const t = M.top * sc / 2, cr = Math.cos(rot) * t, sr = Math.sin(rot) * t, yy = y0 + 0.5 * M.h * sc; card(B, [[x - cr + sr, yy, z - sr - cr], [x + cr + sr, yy, z + sr - cr], [x - cr - sr, yy, z - sr + cr], [x + cr - sr, yy, z + sr + cr]], M.cards[2], false, col, [1, 1]); }  };
+  for (let i = 0, t0 = performance.now(); i < rows.length; i++) { one(rows[i], i); if (!(i & 511) && performance.now() - t0 > 10) { await new Promise(r => setTimeout(r)); t0 = performance.now(); } }   // built after the scene is up, in 10 ms slices so the camera never stutters   // seen from above a bush is its top view, not two thin lines
   const mat = new THREE.MeshStandardMaterial({ map: atlas, alphaTest: 0.4, vertexColors: true, roughness: 1, side: THREE.DoubleSide }), group = new THREE.Group(), list = [];
   mat.onBeforeCompile = sh => { sh.fragmentShader = sh.fragmentShader.replace("#include <normal_fragment_begin>", "float faceDirection = 1.0; vec3 normal = normalize( vNormal ); vec3 nonPerturbedNormal = normal;"); };   // both faces of a card share its normal
   const mesh = B => { const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(B.p, 3)); g.setAttribute("normal", new THREE.Float32BufferAttribute(B.n, 3)); g.setAttribute("uv", new THREE.Float32BufferAttribute(B.uv, 2)); g.setAttribute("color", new THREE.Float32BufferAttribute(B.c, 3)); if (B.i.length) g.setIndex(B.i); g.computeBoundingSphere();
