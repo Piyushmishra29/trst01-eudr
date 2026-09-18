@@ -14,14 +14,16 @@ BLOCKS = [("Mango orchard · north-west", "mango", [(3130, 160), (3680, 160), (3
           ("Mango orchard · north-east", "mango", [(2790, 2140), (3540, 2140), (3540, 2330), (2790, 2330)], 26),
           ("Areca nut (supari) · west", "areca", [(1240, 440), (1960, 440), (1960, 940), (1240, 940)], 12),
           ("Areca nut (supari) · south-west", "areca", [(330, 580), (660, 580), (660, 1010), (330, 1010)], 12)]
-blocks = []
+blocks = []; plants = []
 for name, crop, pts, md in BLOCKS:
     m = np.zeros(exg.shape, np.uint8); cv2.fillPoly(m, [np.int32(pts)], 1)
     pk = (exg == ndi.maximum_filter(exg, size=2 * md + 1)) & (exg > 0.06) & (m > 0)       # one peak of greenness per plant
     area = cv2.contourArea(np.float32(pts)) * M * M / 1e4
     blocks.append(dict(name=name, crop=crop, ring=ring(pts), ha=round(area, 2), plants=int(pk.sum()), centre=ll(*np.mean(pts, 0))))
+    ys, xs = np.where(pk); plants += [[int(x), int(y), crop] for x, y in zip(xs, ys)]
     print(name, blocks[-1]["ha"], "ha", blocks[-1]["plants"], "plants")
 
+json.dump(plants, open("work/block_plants.json", "w"))                 # photo px of every counted orchard plant, for build_trees.py
 T = json.load(open("../ai3d/web/trees.json"))["trees"]; trees = []
 for cx, cy, rx, ry, ht, palm in T:
     rw = (rx + ry) / 2 * M; H = max(ht * 10 * (1.6 if palm else 1), (2.2 if palm else 1.5) * rw)

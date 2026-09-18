@@ -15,5 +15,10 @@ def utm(u, v):
     return X0 + X * PX, Y1 - Y * PX
 def lonlat(u, v):
     return _T.transform(*utm(u, v))
+def ground(u, v):
+    """Cesium World Terrain height (m) at a photo pixel, minus the height at the photo centre. Grid sampled once in the browser (terrain_grid.json)."""
+    from scipy.interpolate import RegularGridInterpolator
+    g = json.load(open("terrain_grid.json")); f = RegularGridInterpolator((np.linspace(*g["v"][:2], g["v"][2]), np.linspace(*g["u"][:2], g["u"][2])), np.array(g["h"]), bounds_error=False, fill_value=None)
+    return f(np.c_[np.ravel(v), np.ravel(u)]).reshape(np.shape(u)) - g["h0"]
 if __name__ == "__main__":
     print(lonlat([0, 4032, 2016], [0, 3024, 1512]))

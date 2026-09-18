@@ -49,7 +49,7 @@
   <div class="stats">
     <div class="stat"><b id="s-gsd">6 cm</b><span>per pixel</span></div>
     <div class="stat"><b id="s-plots">14</b><span>plots, 21 ha</span></div>
-    <div class="stat"><b id="s-trees">854</b><span>trees found</span></div>
+    <div class="stat"><b id="s-trees">854</b><span>trees, plants</span></div>
     <div class="stat"><b id="s-bld">39</b><span>buildings</span></div>
   </div>
   <div class="row"><button class="chip cta" id="tour">▶ Take the tour</button><button class="chip" id="home">Reset view</button><button class="chip" id="top">Top down</button></div>
@@ -127,6 +127,9 @@ try { await C.sampleTerrainMostDetailed(viewer.terrainProvider, [...c0, ...carto
 const farm = await C.Model.fromGltfAsync({ url: "farm.glb", modelMatrix: C.Transforms.eastNorthUpToFixedFrame(C.Cartesian3.fromDegrees(FARM.lon, FARM.lat, (c0[0].height || 880) + 0.2)),
   upAxis: C.Axis.Y, forwardAxis: C.Axis.X, /* forward X: no extra quarter turn, glTF x stays east */ shadows: C.ShadowMode.ENABLED, backFaceCulling: false });
 scene.primitives.add(farm);
+const trees3d = await C.Model.fromGltfAsync({ url: "trees.glb", modelMatrix: farm.modelMatrix, upAxis: C.Axis.Y, forwardAxis: C.Axis.X, shadows: C.ShadowMode.CAST_ONLY, backFaceCulling: false });   // build_trees.py: instanced trunk + leaf-card trees
+scene.primitives.add(trees3d);
+fetch("tree_count.json").then(r => r.json()).then(n => { document.getElementById("s-trees").textContent = n.total.toLocaleString("en-IN"); });
 const touch = matchMedia("(pointer:coarse)").matches;
 viewer.shadows = !touch; viewer.terrainShadows = C.ShadowMode.RECEIVE_ONLY;          // tree and building shadows on the ground (desktop only: costly on phones)
 if (!touch) { viewer.shadowMap.softShadows = true; viewer.shadowMap.size = 4096; viewer.shadowMap.maximumDistance = 1500; viewer.shadowMap.darkness = 0.45; }
@@ -135,7 +138,7 @@ const inRing = (pt, ring) => { let c = false; for (let i = 0, j = ring.length - 
 const bldInfo = b => ({ title: b.m2 > 1500 ? "Polyhouse / large shed" : "Building", rows: [["Footprint", Math.round(b.m2) + " m²"], ["Height (AI estimate)", b.h.toFixed(1) + " m"], ["Outline by", "SAM 2.1 (open source)"]] });
 
 function show(name, on) {
-  if (name === "objects") farm.show = on; else L[name].forEach(e => e.show = on);
+  if (name === "objects") farm.show = trees3d.show = on; else L[name].forEach(e => e.show = on);
   scene.requestRender();
 }
 document.getElementById("layers").addEventListener("click", e => { const l = e.target.dataset.l; if (!l) return; show(l, e.target.classList.toggle("on")); });
