@@ -18,7 +18,10 @@ def add(kind, comp, roof, h, min_fill=0.72, max_w=1e9):
     if fill < min_fill or min(w, d) * mp < 4.5 or min(w, d) * mp > max_w: return
     if inner[int(cy), int(cx)] and kind != 'poultry': return
     if kind != 'poultry' and fill < 0.93:                   # not a true rectangle (a tapering plastic tunnel): keep its own outline, straightened to a few edges
-        cs = cv2.findContours(comp.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0]; c = max(cs, key=cv2.contourArea); ring = cv2.approxPolyDP(c, 2.0 / mp, True).reshape(-1, 2)
+        ke = int(3.0 / mp) | 1; tight = cv2.erode(cv2.morphologyEx(comp.astype(np.uint8), cv2.MORPH_OPEN, np.ones((int(8 / mp) | 1,) * 2, np.uint8)), np.ones((ke, ke), np.uint8))      # drop thin spurs, then pull the walls 1.5 m inside the sheet's edge: plastic drapes outward, and tracks run right beside it
+        cs = cv2.findContours(tight, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0]
+        if not cs: return
+        c = max(cs, key=cv2.contourArea); ring = cv2.approxPolyDP(c, 1.0 / mp, True).reshape(-1, 2); h = min(h, 3.2) if w * d * mp * mp > 1500 else h
         if len(ring) >= 3: x, z = to_w(cx, cy); S.append(dict(x=round(x, 2), z=round(z, 2), ring=[[round(v, 2) for v in to_w(*q)] for q in ring], h=h, roof="flat", kind=kind, big=int(w * d * mp * mp > 1500), src="wide")); return
     s_ = fill ** 0.5 * 1.02 if kind != 'poultry' else 1.0; x, z = to_w(cx, cy)
     if kind == 'poultry':                                   # tiled sheds here are about 11 m across; the colour mask tends to catch a little less
