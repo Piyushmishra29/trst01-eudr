@@ -20,3 +20,24 @@ print(len(parcels), "parcels", sum(p["m2"] for p in parcels) / 1e4, "ha")
 im = cv2.imread("../cesium/work/DJI_0995_enh.png")                                  # enhance.py output (8064 x 6048)
 im = (np.clip((im.astype(np.float32) / 255) ** 0.8 * 0.94 + 0.05, 0, 1) * 255).astype(np.uint8)      # open the shadows a little: the 3D scene adds its own shading on top
 for tag, w, q in (("uhd", 6720, 86), ("hd", 4032, 88), ("sd", 2016, 86)): cv2.imwrite(f"web/tex_{tag}.jpg", cv2.resize(im, (w, w * 3 // 4), interpolation=cv2.INTER_AREA), [cv2.IMWRITE_JPEG_QUALITY, q])
+
+# ---------- seamless edge: the satellite is another day, season and camera, so the surveyed rectangle reads as a box unless the colours meet
+sat = cv2.imread("../ai3d/web/sat_hd.jpg"); k = sat.shape[1] / SW                       # satellite block, maybe stored smaller than its nominal grid
+w, h = 1008, 756; uu, vv = np.meshgrid(np.linspace(0, DW, w), np.linspace(0, DH, h)); fx, fy = uu / DW * (GX - 1), vv / DH * (GY - 1)
+dmap = cv2.remap(D.astype(np.float32), fx.astype(np.float32), fy.astype(np.float32), cv2.INTER_LINEAR)
+mx = ((A[0, 0] * uu + A[0, 1] * vv + A[0, 2] + dmap[..., 0]) * k).astype(np.float32); my = ((A[1, 0] * uu + A[1, 1] * vv + A[1, 2] + dmap[..., 1]) * k).astype(np.float32)
+sat_d = cv2.remap(sat, mx, my, cv2.INTER_LINEAR)                                       # the satellite seen through the drone photo's pixel grid
+dr = cv2.resize(im, (w, h), interpolation=cv2.INTER_AREA); lab = lambda x: cv2.cvtColor(x, cv2.COLOR_BGR2LAB).astype(np.float32)
+# 1. whole satellite block takes the drone photo's overall tone (Lab mean and spread over the shared ground)
+ls, ld = lab(sat_d).reshape(-1, 3), lab(dr).reshape(-1, 3); gain = ld.std(0) / ls.std(0); gain = np.clip(gain, 0.8, 1.22)
+def tone(x):                                             # 80% of the way: a full match over-cooks fields the drone never saw
+    m = cv2.cvtColor(np.clip((lab(x) - ls.mean(0)) * gain + ld.mean(0) - np.array([6, 0, 0]), 0, 255).astype(np.uint8), cv2.COLOR_LAB2BGR); return cv2.addWeighted(m, 0.8, x, 0.2, 0)
+sat_m = tone(sat); cv2.imwrite("web/sat_hd.jpg", sat_m, [cv2.IMWRITE_JPEG_QUALITY, 88]); cv2.imwrite("web/sat_sd.jpg", cv2.resize(sat_m, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_AREA), [cv2.IMWRITE_JPEG_QUALITY, 86])
+# 2. near the border the drone photo's broad colour (not its detail) eases into the satellite's, so fields carry across the edge
+blur = lambda x, s: cv2.GaussianBlur(x.astype(np.float32), (0, 0), s); diff = blur(tone(sat_d), 22) - blur(dr, 22)
+edge = np.minimum.reduce([uu / DW, 1 - uu / DW, (vv / DH) * 0.75, (1 - vv / DH) * 0.75]) * DW * 0.1228                 # metres to the nearest photo edge
+wgt = np.clip(1 - edge / 70, 0, 1) ** 1.5; corr = diff * wgt[..., None]
+for tag, W_, q_ in (("uhd", 6720, 86), ("hd", 4032, 88), ("sd", 2016, 86)):
+    t = cv2.resize(im, (W_, W_ * 3 // 4), interpolation=cv2.INTER_AREA).astype(np.float32) + cv2.resize(corr, (W_, W_ * 3 // 4), interpolation=cv2.INTER_CUBIC)
+    cv2.imwrite(f"web/tex_{tag}.jpg", np.clip(t, 0, 255).astype(np.uint8), [cv2.IMWRITE_JPEG_QUALITY, q_])
+print("sat tone gain", gain.round(2), "edge blend up to 70 m")
